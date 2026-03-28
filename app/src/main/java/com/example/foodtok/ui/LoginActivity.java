@@ -9,8 +9,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.example.foodtok.ui.MainActivity;
 import com.example.foodtok.R;
 
 public class LoginActivity extends AppCompatActivity {

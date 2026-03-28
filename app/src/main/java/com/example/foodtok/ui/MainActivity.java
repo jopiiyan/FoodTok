@@ -6,11 +6,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.example.foodtok.R;
-import com.example.foodtok.ui.ChatFragment;
-import com.example.foodtok.ui.CreateFragment;
-import com.example.foodtok.ui.HomeFragment;
-import com.example.foodtok.ui.ProfileGuestFragment;
-import com.example.foodtok.ui.SearchFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
