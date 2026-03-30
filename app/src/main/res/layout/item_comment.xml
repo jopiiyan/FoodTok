@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single comment row inside the comments RecyclerView -->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <!-- Author avatar -->
+    <ImageView
+        android:id="@+id/iv_comment_avatar"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_circle_profile"
+        android:src="@drawable/ic_profile_placeholder"
+        android:contentDescription="Commenter's profile picture"
+        android:scaleType="centerCrop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Author username -->
+    <TextView
+        android:id="@+id/tv_comment_username"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="8dp"
+        android:textColor="@color/foodtok_text_primary"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toEndOf="@id/iv_comment_avatar"
+        app:layout_constraintTop_toTopOf="@id/iv_comment_avatar"
+        app:layout_constraintEnd_toStartOf="@id/tv_comment_like_count" />
+
+    <!-- Comment body -->
+    <TextView
+        android:id="@+id/tv_comment_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="2dp"
+        android:textColor="@color/foodtok_text_primary"
+        android:textSize="14sp"
+        app:layout_constraintStart_toEndOf="@id/iv_comment_avatar"
+        app:layout_constraintTop_toBottomOf="@id/tv_comment_username"
+        app:layout_constraintEnd_toStartOf="@id/tv_comment_like_count" />
+
+    <!-- Timestamp -->
+    <TextView
+        android:id="@+id/tv_comment_time"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/foodtok_text_secondary"
+        android:textSize="12sp"
+        app:layout_constraintStart_toEndOf="@id/iv_comment_avatar"
+        app:layout_constraintTop_toBottomOf="@id/tv_comment_text"
+        app:layout_constraintEnd_toStartOf="@id/tv_comment_like_count"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <!-- Like button (heart icon) -->
+    <ImageView
+        android:id="@+id/iv_comment_like"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:src="@drawable/ic_like"
+        android:contentDescription="Like comment"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/iv_comment_avatar" />
+
+    <!-- Like count -->
+    <TextView
+        android:id="@+id/tv_comment_like_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="0"
+        android:textColor="@color/foodtok_text_secondary"
+        android:textSize="11sp"
+        android:gravity="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/iv_comment_like" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

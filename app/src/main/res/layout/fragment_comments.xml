@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bottom sheet comment section — launched as BottomSheetDialogFragment over the feed -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/foodtok_white"
+    android:orientation="vertical">
+
+    <!-- Drag handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="6dp"
+        android:background="@color/foodtok_divider" />
+
+    <!-- Header: title + comment count + close button -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp">
+
+        <TextView
+            android:id="@+id/tv_comments_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_centerHorizontal="true"
+            android:text="Comments"
+            android:textColor="@color/foodtok_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_comment_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/tv_comments_title"
+            android:layout_marginStart="6dp"
+            android:text="0"
+            android:textColor="@color/foodtok_text_secondary"
+            android:textSize="14sp" />
+
+        <ImageView
+            android:id="@+id/btn_close_comments"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:contentDescription="Close comments"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:padding="4dp" />
+
+    </RelativeLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/foodtok_divider" />
+
+    <!-- Comments list — height capped so sheet doesn't cover full screen -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_comments"
+        android:layout_width="match_parent"
+        android:layout_height="360dp"
+        android:clipToPadding="false"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/foodtok_divider" />
+
+    <!-- Input area: profile pic + text input + send button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+
+        <!-- Current user's avatar (placeholder) -->
+        <ImageView
+            android:id="@+id/iv_my_avatar"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/bg_circle_profile"
+            android:src="@drawable/ic_profile_placeholder"
+            android:contentDescription="Your profile picture"
+            android:scaleType="centerCrop" />
+
+        <!-- Comment input -->
+        <EditText
+            android:id="@+id/et_comment_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/bg_input_field"
+            android:hint="Add a comment..."
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLines="3"
+            android:textColor="@color/foodtok_text_primary"
+            android:textColorHint="@color/foodtok_text_secondary"
+            android:textSize="14sp" />
+
+        <!-- Send button -->
+        <ImageView
+            android:id="@+id/btn_send_comment"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@android:drawable/ic_menu_send"
+            android:contentDescription="Post comment"
+            android:padding="4dp" />
+
+    </LinearLayout>
+
+</LinearLayout>
