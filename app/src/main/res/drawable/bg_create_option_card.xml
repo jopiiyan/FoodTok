@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Background for camera/gallery picker cards on the Create screen -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Pressed state: slightly darker -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/foodtok_cream_dark" />
+            <stroke android:width="2dp" android:color="@color/foodtok_green" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+
+    <!-- Default state -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/foodtok_white" />
+            <stroke android:width="1.5dp" android:color="@color/foodtok_divider" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+
+</selector>

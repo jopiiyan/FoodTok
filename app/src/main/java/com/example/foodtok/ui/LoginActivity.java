@@ -37,7 +37,7 @@ public class LoginActivity extends AppCompatActivity {
 
         // "Don't have an account? Sign up" — opens SignupActivity
         tvGoToSignUp.setOnClickListener(v -> {
-            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            Intent intent = new Intent(LoginActivity.this, SignupActivity.class);
             startActivity(intent);
             finish(); // close login so user doesn't stack up screens
         });

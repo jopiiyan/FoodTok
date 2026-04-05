@@ -42,7 +42,7 @@
             android:id="@+id/tvToggleAction"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Log in"
+            android:text="Search"
             android:textColor="@color/foodtok_green"
             android:textSize="14sp"
             android:textStyle="bold"

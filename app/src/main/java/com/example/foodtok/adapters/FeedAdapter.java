@@ -49,6 +49,8 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.RecipeViewHold
         return recipes.size();
     }
 
+
+    //RecipeViewHolder inherits from the recyclerview.viewholder
     static class RecipeViewHolder extends RecyclerView.ViewHolder {
         TextView recipeTitleText;
         TextView recipeTagsText;
