@@ -1,9 +1,11 @@
 package com.example.foodtok.ui;
 
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -21,7 +23,15 @@ import java.util.List;
 
 public class HomeFragment extends Fragment {
 
+    private static final float ALPHA_ACTIVE   = 1.0f;
+    private static final float ALPHA_INACTIVE = 0.45f;
+
     private ViewPager2 feedViewPager;
+    private FeedAdapter feedAdapter;
+
+    private TextView navIngredients;
+    private TextView navForYou;
+    private TextView navChat;
 
     @Nullable
     @Override
@@ -29,22 +39,66 @@ public class HomeFragment extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
+        setupTopNav(view);
         setupFeedPager(view);
         return view;
+    }
+
+    // ── Top navigation bar ────────────────────────────────────────────────
+
+    private void setupTopNav(View view) {
+        navIngredients = view.findViewById(R.id.navIngredients);
+        navForYou      = view.findViewById(R.id.navForYou);
+        navChat        = view.findViewById(R.id.navChat);
+
+        // Default state: "For You" (page 1) is active
+        updateNavStyling(1);
+
+        navIngredients.setOnClickListener(v -> feedAdapter.navigateCurrentPageTo(0));
+        navForYou.setOnClickListener(v      -> feedAdapter.navigateCurrentPageTo(1));
+        navChat.setOnClickListener(v        -> feedAdapter.navigateCurrentPageTo(2));
+    }
+
+    /** Applies bold + full-opacity to the active label; dims the others. */
+    private void updateNavStyling(int activePage) {
+        TextView[] tabs = {navIngredients, navForYou, navChat};
+        for (int i = 0; i < tabs.length; i++) {
+            boolean active = (i == activePage);
+            tabs[i].setTypeface(null, active ? Typeface.BOLD : Typeface.NORMAL);
+            tabs[i].animate().alpha(active ? ALPHA_ACTIVE : ALPHA_INACTIVE).setDuration(150).start();
+        }
     }
 
     private void setupFeedPager(View view) {
         List<Recipe> recipes = initializeMockData();
 
         feedViewPager = view.findViewById(R.id.feedViewPager);
-        FeedAdapter adapter = new FeedAdapter(recipes);
-        adapter.setParentVerticalPager(feedViewPager); 
-        feedViewPager.setAdapter(adapter);
+        feedAdapter = new FeedAdapter(recipes);
+        feedAdapter.setParentVerticalPager(feedViewPager);
+
+        // Update nav bar whenever the horizontal sub-page changes,
+        // but only when the event comes from the currently visible recipe.
+        feedAdapter.setOnHorizontalPageChangedListener((adapterPosition, horizontalPage) -> {
+            if (adapterPosition == feedViewPager.getCurrentItem()) {
+                updateNavStyling(horizontalPage);
+            }
+        });
+
+        // Reset nav to "For You" when the user swipes to a new recipe.
+        feedViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                updateNavStyling(1);
+            }
+        });
+
+        feedViewPager.setAdapter(feedAdapter);
     }
 
     private List<Recipe> initializeMockData() {
         List<Recipe> recipes = new ArrayList<>();
-        recipes.add(new Recipe(
+
+        Recipe ramen = new Recipe(
                 "1",
                 "Spicy Ramen Bowl",
                 "https://example.com/ramen.mp4",
@@ -55,8 +109,10 @@ public class HomeFragment extends Fragment {
                         new Ingredient("chili oil", 40, false),
                         new Ingredient("egg", 78, true)
                 )
-        ));
-        recipes.add(new Recipe(
+        );
+        ramen.setAuthorName("Chef Kenji");
+
+        Recipe toast = new Recipe(
                 "2",
                 "Avocado Toast",
                 "https://example.com/avocado.mp4",
@@ -67,8 +123,10 @@ public class HomeFragment extends Fragment {
                         new Ingredient("lemon", 12, false),
                         new Ingredient("salt", 0, false)
                 )
-        ));
-        recipes.add(new Recipe(
+        );
+        toast.setAuthorName("Brunch Queen");
+
+        Recipe cake = new Recipe(
                 "3",
                 "Chocolate Lava Cake",
                 "https://example.com/lavacake.mp4",
@@ -80,7 +138,12 @@ public class HomeFragment extends Fragment {
                         new Ingredient("flour", 110, true),
                         new Ingredient("sugar", 50, false)
                 )
-        ));
+        );
+        cake.setAuthorName("Pastry Pro");
+
+        recipes.add(ramen);
+        recipes.add(toast);
+        recipes.add(cake);
         return recipes;
     }
 }
