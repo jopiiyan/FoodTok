@@ -14,6 +14,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.example.foodtok.R;
 import com.example.foodtok.adapters.FeedAdapter;
@@ -38,6 +40,7 @@ public class HomeFragment extends Fragment {
     private TextView navIngredients;
     private TextView navForYou;
     private TextView navChat;
+    private boolean isKeyboardVisible;
 
     @Nullable
     @Override
@@ -47,6 +50,23 @@ public class HomeFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         setupTopNav(view);
         setupFeedPager(view);
+
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, windowInsets) -> {
+            isKeyboardVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
+
+            if (feedViewPager != null) {
+                // Lock the vertical pager
+                feedViewPager.setUserInputEnabled(!isKeyboardVisible);
+            }
+
+            // Force the Top Nav to highlight "Chat" (index 2) when typing
+            if (isKeyboardVisible) {
+                updateNavStyling(2);
+            }
+
+            return windowInsets;
+        });
+
         return view;
     }
 
@@ -158,7 +178,9 @@ public class HomeFragment extends Fragment {
         feedViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
-                updateNavStyling(1);
+                if (!isKeyboardVisible) {
+                    updateNavStyling(1);
+                }
             }
         });
 

@@ -3,15 +3,24 @@ package com.example.foodtok.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.foodtok.R;
+import com.example.foodtok.models.ChatMessage;
 import com.example.foodtok.models.Ingredient;
 import com.example.foodtok.models.Recipe;
+import com.example.foodtok.models.RecipeEnrichment;
+import com.example.foodtok.services.ChatCallback;
+import com.example.foodtok.services.ChatServiceProvider;
+import com.example.foodtok.services.EnrichmentCallback;
+import com.example.foodtok.services.EnrichmentServiceProvider;
 import com.example.foodtok.services.InteractionServiceProvider;
 
 import java.util.ArrayList;
@@ -147,9 +156,71 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             holder.ingredientsList.setText("");
         }
 
-        // Instructions placeholder — preserved from your friend's version
+        // Instructions placeholder — populated by enrichment when user taps "Generate"
         holder.instructionsHeader.setText("INSTRUCTIONS");
-        holder.instructionsList.setText("Instructions will be available when connected to the backend.");
+        holder.instructionsList.setText("Tap \"Generate AI Insights\" to analyse this recipe.");
+
+        // Check if enrichment is already cached (free — no API call)
+        RecipeEnrichment cached = EnrichmentServiceProvider.getEnrichmentService()
+                .getCachedEnrichment(recipe.getId());
+        if (cached != null) {
+            applyEnrichment(holder, cached);
+            holder.generateAiButton.setVisibility(View.GONE);
+        } else {
+            holder.generateAiButton.setVisibility(View.VISIBLE);
+        }
+
+        // On-demand enrichment — only fires when the user explicitly requests it
+        holder.generateAiButton.setOnClickListener(v -> {
+            holder.generateAiButton.setEnabled(false);
+            holder.generateAiButton.setText("Analysing...");
+            EnrichmentServiceProvider.getEnrichmentService().enrichRecipe(recipe,
+                    new EnrichmentCallback() {
+                @Override
+                public void onEnriched(RecipeEnrichment enrichment) {
+                    holder.generateAiButton.post(() -> {
+                        applyEnrichment(holder, enrichment);
+                        holder.generateAiButton.setVisibility(View.GONE);
+                    });
+                }
+
+                @Override
+                public void onError(String message) {
+                    holder.generateAiButton.post(() -> {
+                        holder.generateAiButton.setEnabled(true);
+                        holder.generateAiButton.setText("✦ Generate AI Insights");
+                        holder.instructionsList.setText("Could not generate insights: " + message);
+                    });
+                }
+            });
+        });
+    }
+
+    private void applyEnrichment(IngredientsViewHolder holder, RecipeEnrichment enrichment) {
+        if (enrichment.hasAllergenWarnings()) {
+            holder.allergenBanner.setText("AI Alert: "
+                    + String.join(", ", enrichment.getDetectedAllergens())
+                    + " detected as allergens.");
+            holder.allergenBanner.setVisibility(View.VISIBLE);
+        }
+
+        if (enrichment.hasGeneratedInstructions()) {
+            List<String> steps = enrichment.getGeneratedInstructions();
+            holder.instructionsHeader.setText(
+                    "INSTRUCTIONS (" + steps.size() + ") \u2014 AI Generated");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < steps.size(); i++) {
+                sb.append(i + 1).append(". ").append(steps.get(i));
+                if (i < steps.size() - 1) sb.append("\n\n");
+            }
+            holder.instructionsList.setText(sb.toString());
+        }
+
+        if (enrichment.hasEstimatedCalories()) {
+            holder.nutrientsChip.setText("Nutrients: ~"
+                    + (int) enrichment.getEstimatedCalories()
+                    + " kcal/serving \u2014 AI");
+        }
     }
 
     // ── Video page (center) ─────────────────────────────────────────────
@@ -221,7 +292,64 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     // ── Chat page ───────────────────────────────────────────────────────
 
     private void bindChat(ChatViewHolder holder) {
-        // Stub — will be wired to OpenAI chat in Phase 5
+        // Set up RecyclerView for chat messages
+        if (holder.chatRecyclerView.getLayoutManager() == null) {
+            LinearLayoutManager lm = new LinearLayoutManager(holder.itemView.getContext());
+            lm.setStackFromEnd(true);
+            holder.chatRecyclerView.setLayoutManager(lm);
+        }
+
+        // Load existing history or create new adapter
+        List<ChatMessage> history = ChatServiceProvider.getChatService()
+                .getHistory(recipe.getId());
+        ChatMessageAdapter adapter = new ChatMessageAdapter(history);
+        holder.chatRecyclerView.setAdapter(adapter);
+
+        // Scroll to bottom if there's existing history
+        if (!history.isEmpty()) {
+            holder.chatRecyclerView.scrollToPosition(history.size() - 1);
+        }
+
+        // Wire send button
+        holder.chatSendButton.setOnClickListener(v -> {
+            String text = holder.chatInput.getText().toString().trim();
+            if (text.isEmpty()) return;
+
+            // Clear input and disable send button during API call
+            holder.chatInput.setText("");
+            holder.chatSendButton.setEnabled(false);
+
+            // Add user message to UI immediately
+            ChatMessage userMsg = new ChatMessage("user", text);
+            adapter.addMessage(userMsg);
+            holder.chatRecyclerView.scrollToPosition(adapter.getItemCount() - 1);
+
+            // Send to chat service
+            ChatServiceProvider.getChatService().sendMessage(
+                    recipe.getId(), recipe, text, new ChatCallback() {
+                @Override
+                public void onResponse(ChatMessage response) {
+                    holder.chatRecyclerView.post(() -> {
+                        adapter.addMessage(response);
+                        holder.chatRecyclerView.scrollToPosition(
+                                adapter.getItemCount() - 1);
+                        holder.chatSendButton.setEnabled(true);
+                    });
+                }
+
+                @Override
+                public void onError(String message) {
+                    holder.chatRecyclerView.post(() -> {
+                        ChatMessage errorMsg = new ChatMessage("model",
+                                "Sorry, something went wrong: " + message);
+                        adapter.addMessage(errorMsg);
+                        holder.chatRecyclerView.scrollToPosition(
+                                adapter.getItemCount() - 1);
+                        holder.chatSendButton.setEnabled(true);
+                    });
+                }
+            });
+        });
     }
 
     // ── ViewHolder inner classes ────────────────────────────────────────
@@ -237,6 +365,7 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         final TextView ingredientsList;
         final TextView instructionsHeader;
         final TextView instructionsList;
+        final Button generateAiButton;
         final TextView caloriesText;
 
         IngredientsViewHolder(@NonNull View itemView) {
@@ -251,6 +380,7 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             ingredientsList = itemView.findViewById(R.id.ingredientsList);
             instructionsHeader = itemView.findViewById(R.id.instructionsHeader);
             instructionsList = itemView.findViewById(R.id.instructionsList);
+            generateAiButton = itemView.findViewById(R.id.generateAiButton);
             caloriesText = itemView.findViewById(R.id.caloriesText);
         }
     }
@@ -279,9 +409,17 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     }
 
     static class ChatViewHolder extends RecyclerView.ViewHolder {
+        final RecyclerView chatRecyclerView;
+        final EditText chatInput;
+        final ImageView chatSendButton;
+        final TextView chatTitle;
+
         ChatViewHolder(@NonNull View itemView) {
             super(itemView);
-            // TODO: bind chat RecyclerView, input field, send button
+            chatRecyclerView = itemView.findViewById(R.id.chatRecyclerView);
+            chatInput = itemView.findViewById(R.id.chatInput);
+            chatSendButton = itemView.findViewById(R.id.chatSendButton);
+            chatTitle = itemView.findViewById(R.id.chatTitle);
         }
     }
 }
