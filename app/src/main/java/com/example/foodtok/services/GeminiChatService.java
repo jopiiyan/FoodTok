@@ -34,7 +34,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class GeminiChatService implements IChatService {
 
     private static final String BASE_URL = "https://generativelanguage.googleapis.com/";
-    private static final int MAX_HISTORY_SIZE = 20;
+    private static final int MAX_HISTORY_SIZE = 6;
 
     private final String apiKey;
     private final GeminiApi geminiApi;
@@ -45,7 +45,7 @@ public class GeminiChatService implements IChatService {
         this.conversationHistory = new HashMap<>();
 
         HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
+        logging.setLevel(HttpLoggingInterceptor.Level.NONE);
 
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(logging)
@@ -83,7 +83,6 @@ public class GeminiChatService implements IChatService {
                     String text = response.body().getText();
                     if (text != null) {
                         ChatMessage botMsg = new ChatMessage("model", text);
-                        history.add(botMsg);
                         callback.onResponse(botMsg);
                     } else {
                         callback.onError("Empty response from Gemini");

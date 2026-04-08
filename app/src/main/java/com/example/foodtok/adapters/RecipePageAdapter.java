@@ -7,6 +7,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -42,6 +43,9 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     private final Recipe recipe;
     private final OnRecipeInteractionListener listener;
+
+    private long lastSendTime = 0;
+    private static final long SEND_COOLDOWN_MS = 1500; // 1.5 seconds between sends
 
     public RecipePageAdapter(Recipe recipe, OnRecipeInteractionListener listener) {
         this.recipe = recipe;
@@ -176,23 +180,23 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             holder.generateAiButton.setText("Analysing...");
             EnrichmentServiceProvider.getEnrichmentService().enrichRecipe(recipe,
                     new EnrichmentCallback() {
-                @Override
-                public void onEnriched(RecipeEnrichment enrichment) {
-                    holder.generateAiButton.post(() -> {
-                        applyEnrichment(holder, enrichment);
-                        holder.generateAiButton.setVisibility(View.GONE);
-                    });
-                }
+                        @Override
+                        public void onEnriched(RecipeEnrichment enrichment) {
+                            holder.generateAiButton.post(() -> {
+                                applyEnrichment(holder, enrichment);
+                                holder.generateAiButton.setVisibility(View.GONE);
+                            });
+                        }
 
-                @Override
-                public void onError(String message) {
-                    holder.generateAiButton.post(() -> {
-                        holder.generateAiButton.setEnabled(true);
-                        holder.generateAiButton.setText("✦ Generate AI Insights");
-                        holder.instructionsList.setText("Could not generate insights: " + message);
+                        @Override
+                        public void onError(String message) {
+                            holder.generateAiButton.post(() -> {
+                                holder.generateAiButton.setEnabled(true);
+                                holder.generateAiButton.setText("✦ Generate AI Insights");
+                                holder.instructionsList.setText("Could not generate insights: " + message);
+                            });
+                        }
                     });
-                }
-            });
         });
     }
 
@@ -315,6 +319,18 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             String text = holder.chatInput.getText().toString().trim();
             if (text.isEmpty()) return;
 
+            // Throttle check: reject if within cooldown window
+            long now = System.currentTimeMillis();
+            long elapsed = now - lastSendTime;
+            if (elapsed < SEND_COOLDOWN_MS) {
+                long remaining = (SEND_COOLDOWN_MS - elapsed) / 1000 + 1;
+                Toast.makeText(holder.itemView.getContext(),
+                        "Please wait " + remaining + "s before sending again",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+            lastSendTime = now;
+
             // Clear input and disable send button during API call
             holder.chatInput.setText("");
             holder.chatSendButton.setEnabled(false);
@@ -327,29 +343,40 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             // Send to chat service
             ChatServiceProvider.getChatService().sendMessage(
                     recipe.getId(), recipe, text, new ChatCallback() {
-                @Override
-                public void onResponse(ChatMessage response) {
-                    holder.chatRecyclerView.post(() -> {
-                        adapter.addMessage(response);
-                        holder.chatRecyclerView.scrollToPosition(
-                                adapter.getItemCount() - 1);
-                        holder.chatSendButton.setEnabled(true);
-                    });
-                }
+                        @Override
+                        public void onResponse(ChatMessage response) {
+                            holder.chatRecyclerView.post(() -> {
+                                adapter.addMessage(response);
+                                holder.chatRecyclerView.scrollToPosition(
+                                        adapter.getItemCount() - 1);
+                                reEnableAfterCooldown(holder.chatSendButton);
+                            });
+                        }
 
-                @Override
-                public void onError(String message) {
-                    holder.chatRecyclerView.post(() -> {
-                        ChatMessage errorMsg = new ChatMessage("model",
-                                "Sorry, something went wrong: " + message);
-                        adapter.addMessage(errorMsg);
-                        holder.chatRecyclerView.scrollToPosition(
-                                adapter.getItemCount() - 1);
-                        holder.chatSendButton.setEnabled(true);
+                        @Override
+                        public void onError(String message) {
+                            holder.chatRecyclerView.post(() -> {
+                                ChatMessage errorMsg = new ChatMessage("model",
+                                        "Sorry, something went wrong: " + message);
+                                adapter.addMessage(errorMsg);
+                                holder.chatRecyclerView.scrollToPosition(
+                                        adapter.getItemCount() - 1);
+                                reEnableAfterCooldown(holder.chatSendButton);
+                            });
+                        }
                     });
-                }
-            });
         });
+    }
+
+    /**
+     * Re-enables the send button only after the full cooldown window has elapsed.
+     * If the API responds faster than SEND_COOLDOWN_MS, the button stays disabled
+     * for the remaining time to prevent rapid-fire sends.
+     */
+    private void reEnableAfterCooldown(View sendButton) {
+        long elapsed = System.currentTimeMillis() - lastSendTime;
+        long remaining = Math.max(0, SEND_COOLDOWN_MS - elapsed);
+        sendButton.postDelayed(() -> sendButton.setEnabled(true), remaining);
     }
 
     // ── ViewHolder inner classes ────────────────────────────────────────
