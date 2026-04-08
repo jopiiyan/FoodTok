@@ -189,6 +189,8 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
                             holder.generateAiButton.post(() -> {
                                 applyEnrichment(holder, enrichment, personalMatches.isEmpty());
                                 holder.generateAiButton.setVisibility(View.GONE);
+                                // Refresh the Video page to show the new allergen warning
+                                notifyItemChanged(PAGE_VIDEO);
                             });
                         }
 
@@ -212,7 +214,7 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
      * the general common-allergen banner instead.
      */
     private Set<String> getUserBlacklist() {
-        return Collections.emptySet();
+        return Collections.emptySet(); //TODO: Connect with BackEnd
     }
 
     private void applyEnrichment(IngredientsViewHolder holder,
@@ -291,7 +293,29 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         }
 
         // Allergen warning — hidden by default, shown when AllergenService is wired
-        holder.allergenWarningText.setVisibility(View.GONE);
+        Set<String> userBlacklist = getUserBlacklist();
+        List<String> personalMatches = recipe.findBlacklistedIngredients(userBlacklist);
+        if (!personalMatches.isEmpty()) {
+            StringBuilder pretty = new StringBuilder();
+            for (int i = 0; i < personalMatches.size(); i++) {
+                String name = personalMatches.get(i);
+                pretty.append(name.substring(0, 1).toUpperCase()).append(name.substring(1));
+                if (i < personalMatches.size() - 1) pretty.append(", ");
+            }
+            holder.allergenWarningText.setText("⚠ Contains: " + pretty);
+            holder.allergenWarningText.setVisibility(View.VISIBLE);
+        } else {
+            RecipeEnrichment cached = EnrichmentServiceProvider.getEnrichmentService()
+                    .getCachedEnrichment(recipe.getId());
+            if (cached != null && cached.hasAllergenWarnings()) {
+                holder.allergenWarningText.setText("AI Alert: "
+                        + String.join(", ", cached.getDetectedAllergens())
+                        + " commonly trigger allergies.");
+                holder.allergenWarningText.setVisibility(View.VISIBLE);
+            } else {
+                holder.allergenWarningText.setVisibility(View.GONE);
+            }
+        }
 
         holder.likeButton.setOnClickListener(v -> {
             if (listener != null) {

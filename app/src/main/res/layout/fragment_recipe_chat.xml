@@ -53,7 +53,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@color/foodtok_green_light"
+            android:background="@android:color/transparent"
             android:hint="e.g. Can I substitute butter?"
             android:inputType="text"
             android:textColor="@color/foodtok_text_on_dark"
