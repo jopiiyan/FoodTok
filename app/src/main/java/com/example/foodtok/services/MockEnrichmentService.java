@@ -32,10 +32,10 @@ public class MockEnrichmentService implements IRecipeEnrichmentService {
         // Detect allergens from ingredients that have the allergen flag
         List<String> detectedAllergens = new ArrayList<>();
         for (Ingredient ing : recipe.getIngredients()) {
-            if (ing.isAllergen()) {
-                String name = ing.getName();
-                detectedAllergens.add(name.substring(0, 1).toUpperCase() + name.substring(1));
-            }
+
+            String name = ing.getName();
+            detectedAllergens.add(name.substring(0, 1).toUpperCase() + name.substring(1));
+
         }
 
         // Generate mock instructions
