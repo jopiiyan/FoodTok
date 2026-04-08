@@ -29,229 +29,230 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/** Main feed fragment with vertical ViewPager2 for recipe scrolling and top navigation. */
 public class HomeFragment extends Fragment {
 
-    private static final float ALPHA_ACTIVE = 1.0f;
-    private static final float ALPHA_INACTIVE = 0.45f;
+  private static final float ALPHA_ACTIVE = 1.0f;
+  private static final float ALPHA_INACTIVE = 0.45f;
 
-    private ViewPager2 feedViewPager;
-    private FeedAdapter feedAdapter;
+  private ViewPager2 feedViewPager;
+  private FeedAdapter feedAdapter;
 
-    private TextView navIngredients;
-    private TextView navForYou;
-    private TextView navChat;
-    private boolean isKeyboardVisible;
+  private TextView navIngredients;
+  private TextView navForYou;
+  private TextView navChat;
+  private boolean isKeyboardVisible;
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
+  @Nullable
+  @Override
+  public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_home, container, false);
-        setupTopNav(view);
-        setupFeedPager(view);
+    View view = inflater.inflate(R.layout.fragment_home, container, false);
+    setupTopNav(view);
+    setupFeedPager(view);
 
-        ViewCompat.setOnApplyWindowInsetsListener(view, (v, windowInsets) -> {
-            isKeyboardVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
+    ViewCompat.setOnApplyWindowInsetsListener(view, (v, windowInsets) -> {
+      isKeyboardVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
 
-            if (feedViewPager != null) {
-                // Lock the vertical pager
-                feedViewPager.setUserInputEnabled(!isKeyboardVisible);
-            }
+      if (feedViewPager != null) {
+        // Lock the vertical pager
+        feedViewPager.setUserInputEnabled(!isKeyboardVisible);
+      }
 
-            // Force the Top Nav to highlight "Chat" (index 2) when typing
-            if (isKeyboardVisible) {
-                updateNavStyling(2);
-            }
+      // Force the Top Nav to highlight "Chat" (index 2) when typing
+      if (isKeyboardVisible) {
+        updateNavStyling(2);
+      }
 
-            return windowInsets;
-        });
+      return windowInsets;
+    });
 
-        return view;
+    return view;
+  }
+
+  private void setupTopNav(View view) {
+    navIngredients = view.findViewById(R.id.navIngredients);
+    navForYou = view.findViewById(R.id.navForYou);
+    navChat = view.findViewById(R.id.navChat);
+
+    // Default active tab = For You
+    updateNavStyling(1);
+
+    navIngredients.setOnClickListener(v -> {
+      if (feedAdapter != null) {
+        feedAdapter.navigateCurrentPageTo(0);
+      }
+    });
+
+    navForYou.setOnClickListener(v -> {
+      if (feedAdapter != null) {
+        feedAdapter.navigateCurrentPageTo(1);
+      }
+    });
+
+    navChat.setOnClickListener(v -> {
+      if (feedAdapter != null) {
+        feedAdapter.navigateCurrentPageTo(2);
+      }
+    });
+  }
+
+  private void updateNavStyling(int activePage) {
+    TextView[] tabs = {navIngredients, navForYou, navChat};
+    for (int i = 0; i < tabs.length; i++) {
+      boolean active = (i == activePage);
+      tabs[i].setTypeface(null, active ? Typeface.BOLD : Typeface.NORMAL);
+      tabs[i].animate()
+          .alpha(active ? ALPHA_ACTIVE : ALPHA_INACTIVE)
+          .setDuration(150)
+          .start();
     }
+  }
 
-    private void setupTopNav(View view) {
-        navIngredients = view.findViewById(R.id.navIngredients);
-        navForYou = view.findViewById(R.id.navForYou);
-        navChat = view.findViewById(R.id.navChat);
+  private void setupFeedPager(View view) {
+    List<Recipe> recipes = initializeMockData();
 
-        // Default active tab = For You
-        updateNavStyling(1);
+    feedViewPager = view.findViewById(R.id.feedViewPager);
 
-        navIngredients.setOnClickListener(v -> {
-            if (feedAdapter != null) {
-                feedAdapter.navigateCurrentPageTo(0);
-            }
-        });
+    feedAdapter = new FeedAdapter(recipes, new OnRecipeInteractionListener() {
+      @Override
+      public void onLikeClicked(Recipe recipe) {
+        InteractionServiceProvider.getInteractionService()
+            .likeRecipe(recipe.getId(), new InteractionCallback() {
+              @SuppressLint("NotifyDataSetChanged")
+              @Override
+              public void onSuccess() {
+                feedAdapter.notifyDataSetChanged();
+              }
 
-        navForYou.setOnClickListener(v -> {
-            if (feedAdapter != null) {
-                feedAdapter.navigateCurrentPageTo(1);
-            }
-        });
-
-        navChat.setOnClickListener(v -> {
-            if (feedAdapter != null) {
-                feedAdapter.navigateCurrentPageTo(2);
-            }
-        });
-    }
-
-    private void updateNavStyling(int activePage) {
-        TextView[] tabs = {navIngredients, navForYou, navChat};
-        for (int i = 0; i < tabs.length; i++) {
-            boolean active = (i == activePage);
-            tabs[i].setTypeface(null, active ? Typeface.BOLD : Typeface.NORMAL);
-            tabs[i].animate()
-                    .alpha(active ? ALPHA_ACTIVE : ALPHA_INACTIVE)
-                    .setDuration(150)
-                    .start();
-        }
-    }
-
-    private void setupFeedPager(View view) {
-        List<Recipe> recipes = initializeMockData();
-
-        feedViewPager = view.findViewById(R.id.feedViewPager);
-
-        feedAdapter = new FeedAdapter(recipes, new OnRecipeInteractionListener() {
-            @Override
-            public void onLikeClicked(Recipe recipe) {
-                InteractionServiceProvider.getInteractionService()
-                        .likeRecipe(recipe.getId(), new InteractionCallback() {
-                            @SuppressLint("NotifyDataSetChanged")
-                            @Override
-                            public void onSuccess() {
-                                feedAdapter.notifyDataSetChanged();
-                            }
-
-                            @Override
-                            public void onError(String message) {
-                                if ("Please log in first".equals(message)) {
-                                    Intent intent = new Intent(getActivity(), LoginActivity.class);
-                                    startActivity(intent);
-                                } else {
-                                    showToast(message);
-                                }
-                            }
-                        });
-            }
-
-            @Override
-            public void onCommentClicked(Recipe recipe) {
-                showToast("Comment clicked for " + recipe.getTitle());
-            }
-
-            @Override
-            public void onSaveClicked(Recipe recipe) {
-                InteractionServiceProvider.getInteractionService()
-                        .saveRecipe(recipe.getId(), new InteractionCallback() {
-                            @SuppressLint("NotifyDataSetChanged")
-                            @Override
-                            public void onSuccess() {
-                                feedAdapter.notifyDataSetChanged();
-                            }
-
-                            @Override
-                            public void onError(String message) {
-                                if ("Please log in first".equals(message)) {
-                                    Intent intent = new Intent(getActivity(), LoginActivity.class);
-                                    startActivity(intent);
-                                } else {
-                                    showToast(message);
-                                }
-                            }
-                        });
-            }
-        });
-
-        feedAdapter.setParentVerticalPager(feedViewPager);
-
-        // Update nav style when horizontal page changes inside current recipe card
-        feedAdapter.setOnHorizontalPageChangedListener((adapterPosition, horizontalPage) -> {
-            if (adapterPosition == feedViewPager.getCurrentItem()) {
-                updateNavStyling(horizontalPage);
-            }
-        });
-
-        // Reset top nav to "For You" when user swipes to a different recipe
-        feedViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
-            @Override
-            public void onPageSelected(int position) {
-                if (!isKeyboardVisible) {
-                    updateNavStyling(1);
+              @Override
+              public void onError(String message) {
+                if ("Please log in first".equals(message)) {
+                  Intent intent = new Intent(getActivity(), LoginActivity.class);
+                  startActivity(intent);
+                } else {
+                  showToast(message);
                 }
-            }
-        });
+              }
+            });
+      }
 
-        feedViewPager.setAdapter(feedAdapter);
-    }
+      @Override
+      public void onCommentClicked(Recipe recipe) {
+        showToast("Comment clicked for " + recipe.getTitle());
+      }
 
-    private void showToast(String message) {
-        if (getContext() != null) {
-            Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+      @Override
+      public void onSaveClicked(Recipe recipe) {
+        InteractionServiceProvider.getInteractionService()
+            .saveRecipe(recipe.getId(), new InteractionCallback() {
+              @SuppressLint("NotifyDataSetChanged")
+              @Override
+              public void onSuccess() {
+                feedAdapter.notifyDataSetChanged();
+              }
+
+              @Override
+              public void onError(String message) {
+                if ("Please log in first".equals(message)) {
+                  Intent intent = new Intent(getActivity(), LoginActivity.class);
+                  startActivity(intent);
+                } else {
+                  showToast(message);
+                }
+              }
+            });
+      }
+    });
+
+    feedAdapter.setParentVerticalPager(feedViewPager);
+
+    // Update nav style when horizontal page changes inside current recipe card
+    feedAdapter.setOnHorizontalPageChangedListener((adapterPosition, horizontalPage) -> {
+      if (adapterPosition == feedViewPager.getCurrentItem()) {
+        updateNavStyling(horizontalPage);
+      }
+    });
+
+    // Reset top nav to "For You" when user swipes to a different recipe
+    feedViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+      @Override
+      public void onPageSelected(int position) {
+        if (!isKeyboardVisible) {
+          updateNavStyling(1);
         }
+      }
+    });
+
+    feedViewPager.setAdapter(feedAdapter);
+  }
+
+  private void showToast(String message) {
+    if (getContext() != null) {
+      Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
     }
+  }
 
-    private List<Recipe> initializeMockData() {
-        List<Recipe> recipes = new ArrayList<>();
+  private List<Recipe> initializeMockData() {
+    List<Recipe> recipes = new ArrayList<>();
 
-        Recipe ramen = new Recipe(
-                "1",
-                "Spicy Ramen Bowl",
-                "https://example.com/ramen.mp4",
-                Arrays.asList("#ramen", "#spicy", "#japanese"),
-                Arrays.asList(
-                        new Ingredient("noodles", 138),
-                        new Ingredient("broth", 15),
-                        new Ingredient("chili oil", 40),
-                        new Ingredient("egg", 78)
-                )
-        );
-        ramen.setAuthorName("Chef Kenji");
-        ramen.setPrepTimeMinutes(10);
-        ramen.setCookTimeMinutes(20);
-        ramen.setEstimatedCalories(450);
+    Recipe ramen = new Recipe(
+        "1",
+        "Spicy Ramen Bowl",
+        "https://example.com/ramen.mp4",
+        Arrays.asList("#ramen", "#spicy", "#japanese"),
+        Arrays.asList(
+            new Ingredient("noodles", 138),
+            new Ingredient("broth", 15),
+            new Ingredient("chili oil", 40),
+            new Ingredient("egg", 78)
+        )
+    );
+    ramen.setAuthorName("Chef Kenji");
+    ramen.setPrepTimeMinutes(10);
+    ramen.setCookTimeMinutes(20);
+    ramen.setEstimatedCalories(450);
 
-        Recipe toast = new Recipe(
-                "2",
-                "Avocado Toast",
-                "https://example.com/avocado.mp4",
-                Arrays.asList("#breakfast", "#healthy", "#avocado"),
-                Arrays.asList(
-                        new Ingredient("sourdough", 120),
-                        new Ingredient("avocado", 160),
-                        new Ingredient("lemon", 12),
-                        new Ingredient("salt", 0)
-                )
-        );
-        toast.setAuthorName("Brunch Queen");
-        toast.setPrepTimeMinutes(5);
-        toast.setCookTimeMinutes(3);
-        toast.setEstimatedCalories(292);
+    Recipe toast = new Recipe(
+        "2",
+        "Avocado Toast",
+        "https://example.com/avocado.mp4",
+        Arrays.asList("#breakfast", "#healthy", "#avocado"),
+        Arrays.asList(
+            new Ingredient("sourdough", 120),
+            new Ingredient("avocado", 160),
+            new Ingredient("lemon", 12),
+            new Ingredient("salt", 0)
+        )
+    );
+    toast.setAuthorName("Brunch Queen");
+    toast.setPrepTimeMinutes(5);
+    toast.setCookTimeMinutes(3);
+    toast.setEstimatedCalories(292);
 
-        Recipe cake = new Recipe(
-                "3",
-                "Chocolate Lava Cake",
-                "https://example.com/lavacake.mp4",
-                Arrays.asList("#dessert", "#chocolate", "#baking"),
-                Arrays.asList(
-                        new Ingredient("dark chocolate", 170),
-                        new Ingredient("butter", 102),
-                        new Ingredient("eggs", 78),
-                        new Ingredient("flour", 110),
-                        new Ingredient("sugar", 50)
-                )
-        );
-        cake.setAuthorName("Pastry Pro");
-        cake.setPrepTimeMinutes(15);
-        cake.setCookTimeMinutes(12);
-        cake.setEstimatedCalories(510);
+    Recipe cake = new Recipe(
+        "3",
+        "Chocolate Lava Cake",
+        "https://example.com/lavacake.mp4",
+        Arrays.asList("#dessert", "#chocolate", "#baking"),
+        Arrays.asList(
+            new Ingredient("dark chocolate", 170),
+            new Ingredient("butter", 102),
+            new Ingredient("eggs", 78),
+            new Ingredient("flour", 110),
+            new Ingredient("sugar", 50)
+        )
+    );
+    cake.setAuthorName("Pastry Pro");
+    cake.setPrepTimeMinutes(15);
+    cake.setCookTimeMinutes(12);
+    cake.setEstimatedCalories(510);
 
-        recipes.add(ramen);
-        recipes.add(toast);
-        recipes.add(cake);
+    recipes.add(ramen);
+    recipes.add(toast);
+    recipes.add(cake);
 
-        return recipes;
-    }
+    return recipes;
+  }
 }

@@ -17,19 +17,19 @@ import com.example.foodtok.models.RecipeEnrichment;
  */
 public interface IRecipeEnrichmentService {
 
-    /**
+  /**
      * Enriches a recipe with AI-generated metadata.
      * If the recipe has already been enriched, returns the cached result immediately.
      */
-    void enrichRecipe(Recipe recipe, EnrichmentCallback callback);
+  void enrichRecipe(Recipe recipe, EnrichmentCallback callback);
 
-    /**
+  /**
      * Returns the cached enrichment for a recipe, or null if not yet enriched.
      */
-    RecipeEnrichment getCachedEnrichment(String recipeId);
+  RecipeEnrichment getCachedEnrichment(String recipeId);
 
-    /**
+  /**
      * Returns whether this recipe has been enriched already.
      */
-    boolean isEnriched(String recipeId);
+  boolean isEnriched(String recipeId);
 }

@@ -14,7 +14,7 @@ import java.util.List;
  */
 public interface IChatService {
 
-    /**
+  /**
      * Sends a user message in the context of a specific recipe.
      * The service maintains conversation history per recipe.
      *
@@ -23,17 +23,17 @@ public interface IChatService {
      * @param userMessage the user's question
      * @param callback    receives the model's response or an error
      */
-    void sendMessage(String recipeId, Recipe recipe, String userMessage,
+  void sendMessage(String recipeId, Recipe recipe, String userMessage,
                      ChatCallback callback);
 
-    /**
+  /**
      * Returns the conversation history for a given recipe.
      * Used to populate the chat RecyclerView when the page is shown.
      */
-    List<ChatMessage> getHistory(String recipeId);
+  List<ChatMessage> getHistory(String recipeId);
 
-    /**
+  /**
      * Clears conversation history for a given recipe.
      */
-    void clearHistory(String recipeId);
+  void clearHistory(String recipeId);
 }

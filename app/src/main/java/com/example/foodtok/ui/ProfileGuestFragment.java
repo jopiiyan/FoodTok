@@ -15,28 +15,29 @@ import com.example.foodtok.R;
 import com.example.foodtok.auth.AuthManager;
 import com.example.foodtok.auth.AuthServiceProvider;
 
+/** Profile view for unauthenticated users, displaying login and signup options. */
 public class ProfileGuestFragment extends Fragment {
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
+  @Nullable
+  @Override
+  public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_profile_guest, container, false);
+    View view = inflater.inflate(R.layout.fragment_profile_guest, container, false);
 
-        Button btnProfileSignUp = view.findViewById(R.id.btnProfileSignUp);
-        Button btnProfileLogin = view.findViewById(R.id.btnProfileLogin);
+    Button btnProfileSignUp = view.findViewById(R.id.btnProfileSignUp);
+    Button btnProfileLogin = view.findViewById(R.id.btnProfileLogin);
 
-        btnProfileSignUp.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), SignupActivity.class);
-            startActivity(intent);
-        });
+    btnProfileSignUp.setOnClickListener(v -> {
+      Intent intent = new Intent(getActivity(), SignupActivity.class);
+      startActivity(intent);
+    });
 
-        btnProfileLogin.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), LoginActivity.class);
-            startActivity(intent);
-        });
+    btnProfileLogin.setOnClickListener(v -> {
+      Intent intent = new Intent(getActivity(), LoginActivity.class);
+      startActivity(intent);
+    });
 
-        return view;
-        }
+    return view;
+    }
 }

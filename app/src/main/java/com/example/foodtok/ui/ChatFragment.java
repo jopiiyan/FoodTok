@@ -11,13 +11,14 @@ import androidx.fragment.app.Fragment;
 
 import com.example.foodtok.R;
 
+/** Global chat tab fragment. Currently a stub awaiting implementation. */
 public class ChatFragment extends Fragment {
 
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
+  @Nullable
+  @Override
+  public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_chat, container, false);
-    }
+    return inflater.inflate(R.layout.fragment_chat, container, false);
+  }
 }

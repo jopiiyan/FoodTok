@@ -22,55 +22,55 @@ import java.util.List;
  */
 public class ChatMessageAdapter extends RecyclerView.Adapter<ChatMessageAdapter.MessageViewHolder> {
 
-    private static final int TYPE_USER = 0;
-    private static final int TYPE_BOT = 1;
+  private static final int TYPE_USER = 0;
+  private static final int TYPE_BOT = 1;
 
-    private final List<ChatMessage> messages;
+  private final List<ChatMessage> messages;
 
-    public ChatMessageAdapter(List<ChatMessage> messages) {
-        this.messages = messages;
-    }
+  public ChatMessageAdapter(List<ChatMessage> messages) {
+    this.messages = messages;
+  }
 
-    @Override
-    public int getItemViewType(int position) {
-        return messages.get(position).isUser() ? TYPE_USER : TYPE_BOT;
-    }
+  @Override
+  public int getItemViewType(int position) {
+    return messages.get(position).isUser() ? TYPE_USER : TYPE_BOT;
+  }
 
-    @NonNull
-    @Override
-    public MessageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        int layout = viewType == TYPE_USER
-                ? R.layout.item_chat_message_user
-                : R.layout.item_chat_message_bot;
-        View view = LayoutInflater.from(parent.getContext()).inflate(layout, parent, false);
-        return new MessageViewHolder(view);
-    }
+  @NonNull
+  @Override
+  public MessageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    int layout = viewType == TYPE_USER
+        ? R.layout.item_chat_message_user
+        : R.layout.item_chat_message_bot;
+    View view = LayoutInflater.from(parent.getContext()).inflate(layout, parent, false);
+    return new MessageViewHolder(view);
+  }
 
-    @Override
-    public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
-        holder.messageText.setText(messages.get(position).getText());
-    }
+  @Override
+  public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
+    holder.messageText.setText(messages.get(position).getText());
+  }
 
-    @Override
-    public int getItemCount() {
-        return messages.size();
-    }
+  @Override
+  public int getItemCount() {
+    return messages.size();
+  }
 
-    /**
+  /**
      * Adds a message and scrolls to it.
      * Called from RecipePageAdapter.bindChat() when user sends or bot responds.
      */
-    public void addMessage(ChatMessage message) {
-        messages.add(message);
-        notifyItemInserted(messages.size() - 1);
-    }
+  public void addMessage(ChatMessage message) {
+    messages.add(message);
+    notifyItemInserted(messages.size() - 1);
+  }
 
-    static class MessageViewHolder extends RecyclerView.ViewHolder {
-        final TextView messageText;
+  static class MessageViewHolder extends RecyclerView.ViewHolder {
+    final TextView messageText;
 
-        MessageViewHolder(@NonNull View itemView) {
-            super(itemView);
-            messageText = itemView.findViewById(R.id.messageText);
-        }
+    MessageViewHolder(@NonNull View itemView) {
+      super(itemView);
+      messageText = itemView.findViewById(R.id.messageText);
     }
+  }
 }

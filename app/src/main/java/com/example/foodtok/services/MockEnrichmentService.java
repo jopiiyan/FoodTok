@@ -18,55 +18,55 @@ import java.util.Map;
  */
 public class MockEnrichmentService implements IRecipeEnrichmentService {
 
-    private final Map<String, RecipeEnrichment> cache = new HashMap<>();
+  private final Map<String, RecipeEnrichment> cache = new HashMap<>();
 
-    @Override
-    public void enrichRecipe(Recipe recipe, EnrichmentCallback callback) {
-        String recipeId = recipe.getId();
+  @Override
+  public void enrichRecipe(Recipe recipe, EnrichmentCallback callback) {
+    String recipeId = recipe.getId();
 
-        if (cache.containsKey(recipeId)) {
-            callback.onEnriched(cache.get(recipeId));
-            return;
-        }
-
-        // Detect allergens from ingredients that have the allergen flag
-        List<String> detectedAllergens = new ArrayList<>();
-        for (Ingredient ing : recipe.getIngredients()) {
-
-            String name = ing.getName();
-            detectedAllergens.add(name.substring(0, 1).toUpperCase() + name.substring(1));
-
-        }
-
-        // Generate mock instructions
-        List<String> instructions = Arrays.asList(
-                "Prepare all ingredients as listed.",
-                "Combine ingredients following standard cooking techniques.",
-                "Cook until done. Adjust seasoning to taste.",
-                "Plate and serve immediately."
-        );
-
-        // Use recipe's own calorie estimate or a mock value
-        double calories = recipe.getEstimatedCalories() > 0
-                ? recipe.getEstimatedCalories() : 350;
-
-        // Mock suggested tags
-        List<String> tags = Arrays.asList("Homemade", "Easy");
-
-        RecipeEnrichment enrichment = new RecipeEnrichment(
-                recipeId, detectedAllergens, instructions, calories, tags);
-        cache.put(recipeId, enrichment);
-
-        callback.onEnriched(enrichment);
+    if (cache.containsKey(recipeId)) {
+      callback.onEnriched(cache.get(recipeId));
+      return;
     }
 
-    @Override
-    public RecipeEnrichment getCachedEnrichment(String recipeId) {
-        return cache.get(recipeId);
+    // Detect allergens from ingredients that have the allergen flag
+    List<String> detectedAllergens = new ArrayList<>();
+    for (Ingredient ing : recipe.getIngredients()) {
+
+      String name = ing.getName();
+      detectedAllergens.add(name.substring(0, 1).toUpperCase() + name.substring(1));
+
     }
 
-    @Override
-    public boolean isEnriched(String recipeId) {
-        return cache.containsKey(recipeId);
-    }
+    // Generate mock instructions
+    List<String> instructions = Arrays.asList(
+        "Prepare all ingredients as listed.",
+        "Combine ingredients following standard cooking techniques.",
+        "Cook until done. Adjust seasoning to taste.",
+        "Plate and serve immediately."
+    );
+
+    // Use recipe's own calorie estimate or a mock value
+    double calories = recipe.getEstimatedCalories() > 0
+        ? recipe.getEstimatedCalories() : 350;
+
+    // Mock suggested tags
+    List<String> tags = Arrays.asList("Homemade", "Easy");
+
+    RecipeEnrichment enrichment = new RecipeEnrichment(
+        recipeId, detectedAllergens, instructions, calories, tags);
+    cache.put(recipeId, enrichment);
+
+    callback.onEnriched(enrichment);
+  }
+
+  @Override
+  public RecipeEnrichment getCachedEnrichment(String recipeId) {
+    return cache.get(recipeId);
+  }
+
+  @Override
+  public boolean isEnriched(String recipeId) {
+    return cache.containsKey(recipeId);
+  }
 }

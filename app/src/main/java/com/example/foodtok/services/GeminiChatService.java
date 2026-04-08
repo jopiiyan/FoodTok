@@ -33,164 +33,164 @@ import retrofit2.converter.gson.GsonConverterFactory;
  */
 public class GeminiChatService implements IChatService {
 
-    private static final String BASE_URL = "https://generativelanguage.googleapis.com/";
-    private static final int MAX_HISTORY_SIZE = 6;
+  private static final String BASE_URL = "https://generativelanguage.googleapis.com/";
+  private static final int MAX_HISTORY_SIZE = 6;
 
-    private final String apiKey;
-    private final GeminiApi geminiApi;
-    private final Map<String, List<ChatMessage>> conversationHistory;
+  private final String apiKey;
+  private final GeminiApi geminiApi;
+  private final Map<String, List<ChatMessage>> conversationHistory;
 
-    public GeminiChatService(String apiKey) {
-        this.apiKey = apiKey;
-        this.conversationHistory = new HashMap<>();
+  public GeminiChatService(String apiKey) {
+    this.apiKey = apiKey;
+    this.conversationHistory = new HashMap<>();
 
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.NONE);
+    HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+    logging.setLevel(HttpLoggingInterceptor.Level.NONE);
 
-        OkHttpClient client = new OkHttpClient.Builder()
-                .addInterceptor(logging)
-                .build();
+    OkHttpClient client = new OkHttpClient.Builder()
+        .addInterceptor(logging)
+        .build();
 
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+    Retrofit retrofit = new Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .client(client)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build();
 
-        this.geminiApi = retrofit.create(GeminiApi.class);
-    }
+    this.geminiApi = retrofit.create(GeminiApi.class);
+  }
 
-    @Override
-    public void sendMessage(String recipeId, Recipe recipe, String userMessage,
-                            ChatCallback callback) {
-        List<ChatMessage> history = getOrCreateHistory(recipeId);
+  @Override
+  public void sendMessage(String recipeId, Recipe recipe, String userMessage,
+              ChatCallback callback) {
+    List<ChatMessage> history = getOrCreateHistory(recipeId);
 
-        // Note: the user message is already added to history by the UI layer
-        // (adapter.addMessage shares the same list reference). Do NOT add it again.
-        trimHistory(history);
+    // Note: the user message is already added to history by the UI layer
+    // (adapter.addMessage shares the same list reference). Do NOT add it again.
+    trimHistory(history);
 
-        // Build the API request
-        String systemPrompt = buildSystemPrompt(recipe);
-        List<GeminiRequest.Content> contents = buildContents(history);
-        GeminiRequest request = GeminiRequest.create(systemPrompt, contents);
+    // Build the API request
+    String systemPrompt = buildSystemPrompt(recipe);
+    List<GeminiRequest.Content> contents = buildContents(history);
+    GeminiRequest request = GeminiRequest.create(systemPrompt, contents);
 
-        // Make async API call
-        geminiApi.generateContent(apiKey, request).enqueue(new Callback<GeminiResponse>() {
-            @Override
-            public void onResponse(@NonNull Call<GeminiResponse> call,
+    // Make async API call
+    geminiApi.generateContent(apiKey, request).enqueue(new Callback<GeminiResponse>() {
+      @Override
+      public void onResponse(@NonNull Call<GeminiResponse> call,
                                    @NonNull Response<GeminiResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    String text = response.body().getText();
-                    if (text != null) {
-                        ChatMessage botMsg = new ChatMessage("model", text);
-                        callback.onResponse(botMsg);
-                    } else {
-                        callback.onError("Empty response from Gemini");
-                    }
-                } else if (response.code() == 429) {
-                    callback.onError("Too many requests — please wait a moment before asking again.");
-                } else {
-                    callback.onError("Gemini API error: " + response.code());
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<GeminiResponse> call,
-                                  @NonNull Throwable t) {
-                callback.onError("Network error: " + t.getMessage());
-            }
-        });
-    }
-
-    @Override
-    public List<ChatMessage> getHistory(String recipeId) {
-        return getOrCreateHistory(recipeId);
-    }
-
-    @Override
-    public void clearHistory(String recipeId) {
-        conversationHistory.remove(recipeId);
-    }
-
-    // --- Private helpers ---
-
-    private List<ChatMessage> getOrCreateHistory(String recipeId) {
-        if (!conversationHistory.containsKey(recipeId)) {
-            conversationHistory.put(recipeId, new ArrayList<>());
+        if (response.isSuccessful() && response.body() != null) {
+          String text = response.body().getText();
+          if (text != null) {
+            ChatMessage botMsg = new ChatMessage("model", text);
+            callback.onResponse(botMsg);
+          } else {
+            callback.onError("Empty response from Gemini");
+          }
+        } else if (response.code() == 429) {
+          callback.onError("Too many requests — please wait a moment before asking again.");
+        } else {
+          callback.onError("Gemini API error: " + response.code());
         }
-        return conversationHistory.get(recipeId);
-    }
+      }
 
-    private void trimHistory(List<ChatMessage> history) {
-        while (history.size() > MAX_HISTORY_SIZE) {
-            history.remove(0);
-        }
-    }
+      @Override
+      public void onFailure(@NonNull Call<GeminiResponse> call,
+                 @NonNull Throwable t) {
+        callback.onError("Network error: " + t.getMessage());
+      }
+    });
+  }
 
-    /**
+  @Override
+  public List<ChatMessage> getHistory(String recipeId) {
+    return getOrCreateHistory(recipeId);
+  }
+
+  @Override
+  public void clearHistory(String recipeId) {
+    conversationHistory.remove(recipeId);
+  }
+
+  // --- Private helpers ---
+
+  private List<ChatMessage> getOrCreateHistory(String recipeId) {
+    if (!conversationHistory.containsKey(recipeId)) {
+      conversationHistory.put(recipeId, new ArrayList<>());
+    }
+    return conversationHistory.get(recipeId);
+  }
+
+  private void trimHistory(List<ChatMessage> history) {
+    while (history.size() > MAX_HISTORY_SIZE) {
+      history.remove(0);
+    }
+  }
+
+  /**
      * Builds a system prompt with full recipe context so the chatbot
      * can answer questions about ingredients, substitutions, equipment, etc.
      */
-    private String buildSystemPrompt(Recipe recipe) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("You are a helpful cooking assistant for the recipe \"")
-          .append(recipe.getTitle()).append("\"");
+  private String buildSystemPrompt(Recipe recipe) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("You are a helpful cooking assistant for the recipe \"")
+     .append(recipe.getTitle()).append("\"");
 
-        if (recipe.getAuthorName() != null && !recipe.getAuthorName().isEmpty()) {
-            sb.append(" by ").append(recipe.getAuthorName());
-        }
-        sb.append(".\n\n");
+    if (recipe.getAuthorName() != null && !recipe.getAuthorName().isEmpty()) {
+      sb.append(" by ").append(recipe.getAuthorName());
+    }
+    sb.append(".\n\n");
 
-        // Ingredients with calorie and allergen info
-        List<Ingredient> ingredients = recipe.getIngredients();
-        if (ingredients != null && !ingredients.isEmpty()) {
-            sb.append("Ingredients:\n");
-            for (Ingredient ing : ingredients) {
-                sb.append("- ").append(ing.getName());
-                sb.append(" (").append((int) ing.getCalories()).append(" kcal)");
-                sb.append(" [ALLERGEN]");
-                sb.append("\n");
-            }
-            sb.append("\n");
-        }
-
-        // Timing and nutrition
-        if (recipe.getPrepTimeMinutes() > 0 || recipe.getCookTimeMinutes() > 0) {
-            sb.append("Prep: ").append(recipe.getPrepTimeMinutes()).append(" min | ");
-            sb.append("Cook: ").append(recipe.getCookTimeMinutes()).append(" min");
-            if (recipe.getEstimatedCalories() > 0) {
-                sb.append(" | ~").append((int) recipe.getEstimatedCalories()).append(" kcal total");
-            }
-            sb.append("\n\n");
-        }
-
-        // Tags
-        List<String> tags = recipe.getTags();
-        if (tags != null && !tags.isEmpty()) {
-            sb.append("Tags: ").append(String.join(", ", tags)).append("\n\n");
-        }
-
-        sb.append("Help the user with ingredient substitutions, cooking techniques, ")
-          .append("equipment needed, nutritional information, dietary modifications, ")
-          .append("and step-by-step guidance. Keep answers concise and practical. ")
-          .append("If asked about something unrelated to cooking or this recipe, ")
-          .append("politely redirect the conversation.");
-
-        return sb.toString();
+    // Ingredients with calorie and allergen info
+    List<Ingredient> ingredients = recipe.getIngredients();
+    if (ingredients != null && !ingredients.isEmpty()) {
+      sb.append("Ingredients:\n");
+      for (Ingredient ing : ingredients) {
+        sb.append("- ").append(ing.getName());
+        sb.append(" (").append((int) ing.getCalories()).append(" kcal)");
+        sb.append(" [ALLERGEN]");
+        sb.append("\n");
+      }
+      sb.append("\n");
     }
 
-    /**
+    // Timing and nutrition
+    if (recipe.getPrepTimeMinutes() > 0 || recipe.getCookTimeMinutes() > 0) {
+      sb.append("Prep: ").append(recipe.getPrepTimeMinutes()).append(" min | ");
+      sb.append("Cook: ").append(recipe.getCookTimeMinutes()).append(" min");
+      if (recipe.getEstimatedCalories() > 0) {
+        sb.append(" | ~").append((int) recipe.getEstimatedCalories()).append(" kcal total");
+      }
+      sb.append("\n\n");
+    }
+
+    // Tags
+    List<String> tags = recipe.getTags();
+    if (tags != null && !tags.isEmpty()) {
+      sb.append("Tags: ").append(String.join(", ", tags)).append("\n\n");
+    }
+
+    sb.append("Help the user with ingredient substitutions, cooking techniques, ")
+     .append("equipment needed, nutritional information, dietary modifications, ")
+     .append("and step-by-step guidance. Keep answers concise and practical. ")
+     .append("If asked about something unrelated to cooking or this recipe, ")
+     .append("politely redirect the conversation.");
+
+    return sb.toString();
+  }
+
+  /**
      * Converts ChatMessage history to Gemini API Content objects.
      */
-    private List<GeminiRequest.Content> buildContents(List<ChatMessage> history) {
-        List<GeminiRequest.Content> contents = new ArrayList<>();
-        for (ChatMessage msg : history) {
-            if (msg.isUser()) {
-                contents.add(GeminiRequest.Content.ofUser(msg.getText()));
-            } else {
-                contents.add(GeminiRequest.Content.ofModel(msg.getText()));
-            }
-        }
-        return contents;
+  private List<GeminiRequest.Content> buildContents(List<ChatMessage> history) {
+    List<GeminiRequest.Content> contents = new ArrayList<>();
+    for (ChatMessage msg : history) {
+      if (msg.isUser()) {
+        contents.add(GeminiRequest.Content.ofUser(msg.getText()));
+      } else {
+        contents.add(GeminiRequest.Content.ofModel(msg.getText()));
+      }
     }
+    return contents;
+  }
 }

@@ -9,53 +9,53 @@ package com.example.foodtok.models;
  */
 public class ChatMessage {
 
-    private final String role;           // "user" or "model"
-    private final String text;
-    private final long timestampMillis;
+  private final String role;           // "user" or "model"
+  private final String text;
+  private final long timestampMillis;
 
-    public ChatMessage(String role, String text) {
-        if (role == null || (!role.equals("user") && !role.equals("model"))) {
-            throw new IllegalArgumentException("Role must be 'user' or 'model'");
-        }
-        if (text == null || text.trim().isEmpty()) {
-            throw new IllegalArgumentException("Message text cannot be empty");
-        }
-        this.role = role;
-        this.text = text.trim();
-        this.timestampMillis = System.currentTimeMillis();
+  public ChatMessage(String role, String text) {
+    if (role == null || (!role.equals("user") && !role.equals("model"))) {
+      throw new IllegalArgumentException("Role must be 'user' or 'model'");
     }
-
-    // --- Query methods (Tell, Don't Ask) ---
-
-    public boolean isUser() {
-        return "user".equals(role);
+    if (text == null || text.trim().isEmpty()) {
+      throw new IllegalArgumentException("Message text cannot be empty");
     }
+    this.role = role;
+    this.text = text.trim();
+    this.timestampMillis = System.currentTimeMillis();
+  }
 
-    public boolean isModel() {
-        return "model".equals(role);
-    }
+  // --- Query methods (Tell, Don't Ask) ---
 
-    /**
+  public boolean isUser() {
+    return "user".equals(role);
+  }
+
+  public boolean isModel() {
+    return "model".equals(role);
+  }
+
+  /**
      * Returns a human-readable relative timestamp.
      * Same pattern as Comment.getFormattedTime().
      */
-    public String getFormattedTime() {
-        long diffMs = System.currentTimeMillis() - timestampMillis;
-        long diffSec = diffMs / 1000;
-        long diffMin = diffSec / 60;
-        long diffHr = diffMin / 60;
+  public String getFormattedTime() {
+    long diffMs = System.currentTimeMillis() - timestampMillis;
+    long diffSec = diffMs / 1000;
+    long diffMin = diffSec / 60;
+    long diffHr = diffMin / 60;
 
-        if (diffSec < 60) return "just now";
-        if (diffMin < 60) return diffMin + "m ago";
-        if (diffHr < 24) return diffHr + "h ago";
-        return (diffHr / 24) + "d ago";
-    }
+    if (diffSec < 60) return "just now";
+    if (diffMin < 60) return diffMin + "m ago";
+    if (diffHr < 24) return diffHr + "h ago";
+    return (diffHr / 24) + "d ago";
+  }
 
-    // --- Getters (no setters — messages are immutable) ---
+  // --- Getters (no setters — messages are immutable) ---
 
-    public String getRole() { return role; }
+  public String getRole() { return role; }
 
-    public String getText() { return text; }
+  public String getText() { return text; }
 
-    public long getTimestampMillis() { return timestampMillis; }
+  public long getTimestampMillis() { return timestampMillis; }
 }

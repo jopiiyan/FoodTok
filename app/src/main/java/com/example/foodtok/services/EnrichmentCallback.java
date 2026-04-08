@@ -7,6 +7,6 @@ import com.example.foodtok.models.RecipeEnrichment;
  * Follows the same pattern as InteractionCallback and ChatCallback.
  */
 public interface EnrichmentCallback {
-    void onEnriched(RecipeEnrichment enrichment);
-    void onError(String message);
+  void onEnriched(RecipeEnrichment enrichment);
+  void onError(String message);
 }

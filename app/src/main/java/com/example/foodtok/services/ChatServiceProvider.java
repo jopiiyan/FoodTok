@@ -12,25 +12,25 @@ import com.example.foodtok.BuildConfig;
  */
 public final class ChatServiceProvider {
 
-    private static IChatService chatService;
+  private static IChatService chatService;
 
-    private ChatServiceProvider() {
-        // prevent instantiation
-    }
+  private ChatServiceProvider() {
+    // prevent instantiation
+  }
 
-    public static IChatService getChatService() {
-        if (chatService == null) {
-            String key = BuildConfig.GEMINI_API_KEY;
-            if (key != null && !key.isEmpty()) {
-                chatService = new GeminiChatService(key);
-            } else {
-                chatService = new MockChatService();
-            }
-        }
-        return chatService;
+  public static IChatService getChatService() {
+    if (chatService == null) {
+      String key = BuildConfig.GEMINI_API_KEY;
+      if (key != null && !key.isEmpty()) {
+        chatService = new GeminiChatService(key);
+      } else {
+        chatService = new MockChatService();
+      }
     }
+    return chatService;
+  }
 
-    public static void setChatService(IChatService service) {
-        chatService = service;
-    }
+  public static void setChatService(IChatService service) {
+    chatService = service;
+  }
 }

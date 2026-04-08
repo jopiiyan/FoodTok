@@ -12,25 +12,25 @@ import com.example.foodtok.BuildConfig;
  */
 public final class EnrichmentServiceProvider {
 
-    private static IRecipeEnrichmentService enrichmentService;
+  private static IRecipeEnrichmentService enrichmentService;
 
-    private EnrichmentServiceProvider() {
-        // prevent instantiation
-    }
+  private EnrichmentServiceProvider() {
+    // prevent instantiation
+  }
 
-    public static IRecipeEnrichmentService getEnrichmentService() {
-        if (enrichmentService == null) {
-            String key = BuildConfig.GEMINI_API_KEY;
-            if (key != null && !key.isEmpty()) {
-                enrichmentService = new GeminiEnrichmentService(key);
-            } else {
-                enrichmentService = new MockEnrichmentService();
-            }
-        }
-        return enrichmentService;
+  public static IRecipeEnrichmentService getEnrichmentService() {
+    if (enrichmentService == null) {
+      String key = BuildConfig.GEMINI_API_KEY;
+      if (key != null && !key.isEmpty()) {
+        enrichmentService = new GeminiEnrichmentService(key);
+      } else {
+        enrichmentService = new MockEnrichmentService();
+      }
     }
+    return enrichmentService;
+  }
 
-    public static void setEnrichmentService(IRecipeEnrichmentService service) {
-        enrichmentService = service;
-    }
+  public static void setEnrichmentService(IRecipeEnrichmentService service) {
+    enrichmentService = service;
+  }
 }

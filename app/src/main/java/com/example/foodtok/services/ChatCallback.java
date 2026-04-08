@@ -7,6 +7,6 @@ import com.example.foodtok.models.ChatMessage;
  * Follows the same pattern as InteractionCallback.
  */
 public interface ChatCallback {
-    void onResponse(ChatMessage response);
-    void onError(String message);
+  void onResponse(ChatMessage response);
+  void onError(String message);
 }

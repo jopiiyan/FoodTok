@@ -10,20 +10,21 @@ import retrofit2.http.Header;
 import retrofit2.http.POST;
 import retrofit2.http.Query;
 
+/** Retrofit interface for Supabase GoTrue authentication endpoints. */
 public interface SupabaseAuthApi {
 
-    // POST /auth/v1/signup
-    @POST("signup")
-    Call<AuthResponse> signUp(@Body SignUpRequest request);
+  // POST /auth/v1/signup
+  @POST("signup")
+  Call<AuthResponse> signUp(@Body SignUpRequest request);
 
-    // POST /auth/v1/token?grant_type=password
-    @POST("token")
-    Call<AuthResponse> login(
-            @Query("grant_type") String grantType,
-            @Body LoginRequest request
-    );
+  // POST /auth/v1/token?grant_type=password
+  @POST("token")
+  Call<AuthResponse> login(
+      @Query("grant_type") String grantType,
+      @Body LoginRequest request
+  );
 
-    // POST /auth/v1/logout
-    @POST("logout")
-    Call<Void> logout(@Header("Authorization") String token);
+  // POST /auth/v1/logout
+  @POST("logout")
+  Call<Void> logout(@Header("Authorization") String token);
 }
