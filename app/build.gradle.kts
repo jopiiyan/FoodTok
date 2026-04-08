@@ -1,12 +1,11 @@
+
 plugins {
     alias(libs.plugins.android.application)
 }
 
 android {
     namespace = "com.example.foodtok"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.foodtok"
@@ -34,6 +33,13 @@ android {
 }
 
 dependencies {
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
+    implementation(libs.gson)
+    implementation(libs.glide)
+    annotationProcessor(libs.glide.compiler)
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)

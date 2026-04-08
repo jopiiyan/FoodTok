@@ -16,5 +16,4 @@ public class InteractionServiceProvider {
     public static void setInteractionService(IInteractionService service){
         interactionService = service;
     }
-
 }
