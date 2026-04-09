@@ -10,6 +10,13 @@
         android:layout_height="match_parent"
         android:orientation="vertical" />
 
+    <ProgressBar
+        android:id="@+id/feedLoadingSpinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
     <!-- Top navigation scrim + overlay: Ingredients | For You | Chat -->
     <LinearLayout
         android:id="@+id/topNavBar"
