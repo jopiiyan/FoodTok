@@ -6,6 +6,12 @@ import com.example.foodtok.auth.AuthManager;
 import com.example.foodtok.auth.AuthServiceProvider;
 import com.example.foodtok.auth.SupabaseAuthService;
 import com.example.foodtok.models.User;
+import com.example.foodtok.services.CommentServiceProvider;
+import com.example.foodtok.services.InteractionServiceProvider;
+import com.example.foodtok.services.RecipeServiceProvider;
+import com.example.foodtok.services.SupabaseCommentService;
+import com.example.foodtok.services.SupabaseInteractionService;
+import com.example.foodtok.services.SupabaseRecipeService;
 import com.example.foodtok.util.SessionManager;
 
 /** Custom Application entry point. Initializes session management and service providers. */
@@ -21,7 +27,13 @@ public class FoodTokApplication extends Application {
     // 2. Set real auth service (replaces MockAuthService)
     AuthServiceProvider.setAuthService(new SupabaseAuthService());
 
-    // 3. Restore login state if user was previously logged in
+    // 3. Set real Supabase services (replaces mock implementations)
+    RecipeServiceProvider.setRecipeService(new SupabaseRecipeService());
+    CommentServiceProvider.setCommentService(new SupabaseCommentService());
+    InteractionServiceProvider.setInteractionService(
+        new SupabaseInteractionService());
+
+    // 4. Restore login state if user was previously logged in
     restoreSession();
   }
 
