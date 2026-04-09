@@ -25,9 +25,14 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.foodtok.R;
+import com.example.foodtok.auth.AuthManager;
 import com.example.foodtok.models.Ingredient;
 import com.example.foodtok.models.Recipe;
+import com.example.foodtok.services.RecipeCallback;
+import com.example.foodtok.services.RecipeServiceProvider;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -296,54 +301,77 @@ public class UploadRecipeFragment extends Fragment {
   private void postRecipe() {
     String title = titleInput.getText().toString().trim();
     if (title.isEmpty()) {
-      Toast.makeText(requireContext(), "Title is required", Toast.LENGTH_SHORT).show();
+      Toast.makeText(requireContext(), "Title is required",
+          Toast.LENGTH_SHORT).show();
       titleInput.requestFocus();
       return;
     }
     if (videoUri == null) {
-      Toast.makeText(requireContext(), "No video selected", Toast.LENGTH_SHORT).show();
+      Toast.makeText(requireContext(), "No video selected",
+          Toast.LENGTH_SHORT).show();
+      return;
+    }
+    if (AuthManager.getInstance().getCurrentUser() == null) {
+      Toast.makeText(requireContext(), "Please log in first",
+          Toast.LENGTH_SHORT).show();
       return;
     }
 
-    // Build the recipe incrementally
-    String id = UUID.randomUUID().toString();
-    Recipe recipe = new Recipe(id, videoUri.toString());
-    recipe.setTitle(title);
-
-    // Tags — read each row's tag data
+    // Collect tags
+    List<String> tagValues = new ArrayList<>();
     for (int i = 0; i < tagList.getChildCount(); i++) {
       Object tag = tagList.getChildAt(i).getTag();
       if (tag instanceof String) {
-        recipe.addTag((String) tag);
+        tagValues.add((String) tag);
       }
     }
 
-    // Ingredients — read each row's tag data
-    for (int i = 0; i < ingredientList.getChildCount(); i++) {
-      Object tag = ingredientList.getChildAt(i).getTag();
-      if (tag instanceof String) {
-        // Calories default to 0 — Gemini enrichment estimates the total later
-        recipe.addIngredient(new Ingredient((String) tag, 0.0));
-      }
-    }
+    String description =
+        instructionsInput.getText().toString().trim();
+    int prepTime = prepTimePicker.getValue();
+    int cookTime = cookTimePicker.getValue();
+    double calories = parseDoubleSafe(
+        caloriesInput.getText().toString(), 0.0);
 
-    // Numeric fields — NumberPickers always return valid ints
-    recipe.setPrepTimeMinutes(prepTimePicker.getValue());
-    recipe.setCookTimeMinutes(cookTimePicker.getValue());
-    recipe.setEstimatedCalories(parseDoubleSafe(caloriesInput.getText().toString(), 0.0));
+    // Disable button to prevent double-tap
+    postButton.setEnabled(false);
+    postButton.setText("Uploading…");
 
-    // Instructions stored on the description field for now
-    recipe.setDescription(instructionsInput.getText().toString().trim());
+    RecipeServiceProvider.getRecipeService().uploadRecipe(
+        requireContext(), videoUri, title, description,
+        tagValues.toArray(new String[0]),
+        prepTime, cookTime, calories,
+        new RecipeCallback() {
+          @Override
+          public void onSuccess(Recipe recipe) {
+            if (getActivity() == null) {
+              return;
+            }
+            getActivity().runOnUiThread(() -> {
+              Toast.makeText(requireContext(),
+                  "Recipe \"" + recipe.getTitle() + "\" posted!",
+                  Toast.LENGTH_LONG).show();
+              if (getParentFragmentManager()
+                  .getBackStackEntryCount() > 0) {
+                getParentFragmentManager().popBackStack();
+              }
+            });
+          }
 
-    // TODO: send `recipe` to the backend (e.g., RecipeServiceProvider.upload(recipe, ...))
-    Toast.makeText(requireContext(),
-        "Recipe \"" + recipe.getTitle() + "\" ready to post!",
-        Toast.LENGTH_LONG).show();
-
-    // Pop back to the previous screen after posting
-    if (getParentFragmentManager().getBackStackEntryCount() > 0) {
-      getParentFragmentManager().popBackStack();
-    }
+          @Override
+          public void onError(String message) {
+            if (getActivity() == null) {
+              return;
+            }
+            getActivity().runOnUiThread(() -> {
+              Toast.makeText(requireContext(),
+                  "Upload failed: " + message,
+                  Toast.LENGTH_LONG).show();
+              postButton.setEnabled(true);
+              postButton.setText("Post");
+            });
+          }
+        });
   }
 
   private double parseDoubleSafe(String s, double fallback) {

@@ -1,11 +1,15 @@
 package com.example.foodtok.services;
 
+import android.content.Context;
+import android.net.Uri;
+
 import com.example.foodtok.models.Ingredient;
 import com.example.foodtok.models.Recipe;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 /** In-memory mock implementation of {@link IRecipeService} for offline testing. */
 public class MockRecipeService implements IRecipeService {
@@ -37,6 +41,23 @@ public class MockRecipeService implements IRecipeService {
       }
     }
     callback.onError("Recipe not found");
+  }
+
+  @Override
+  public void uploadRecipe(Context context, Uri videoUri, String title,
+      String description, String[] tags, int prepTimeMinutes,
+      int cookTimeMinutes, double estimatedCalories,
+      RecipeCallback callback) {
+    Recipe recipe = new Recipe(UUID.randomUUID().toString(),
+        title, videoUri.toString(), Arrays.asList(tags),
+        new ArrayList<>());
+    recipe.setDescription(description);
+    recipe.setPrepTimeMinutes(prepTimeMinutes);
+    recipe.setCookTimeMinutes(cookTimeMinutes);
+    recipe.setEstimatedCalories(estimatedCalories);
+    recipe.setAuthorName("Mock User");
+    mockRecipes.add(0, recipe);
+    callback.onSuccess(recipe);
   }
 
   private List<Recipe> buildMockData() {

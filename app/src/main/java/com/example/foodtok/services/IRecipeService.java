@@ -1,5 +1,8 @@
 package com.example.foodtok.services;
 
+import android.content.Context;
+import android.net.Uri;
+
 /** Interface contract for fetching and creating recipes. */
 public interface IRecipeService {
 
@@ -19,4 +22,22 @@ public interface IRecipeService {
    * @param callback async result callback
    */
   void getRecipeById(String recipeId, RecipeCallback callback);
+
+  /**
+   * Uploads a video to storage and creates a recipe row in the database.
+   *
+   * @param context  Android context for reading the video Uri
+   * @param videoUri local Uri of the video file
+   * @param title    recipe title (required)
+   * @param description recipe description / instructions
+   * @param tags     array of tag strings
+   * @param prepTimeMinutes prep time in minutes
+   * @param cookTimeMinutes cook time in minutes
+   * @param estimatedCalories estimated calorie count
+   * @param callback async result callback returning the created Recipe
+   */
+  void uploadRecipe(Context context, Uri videoUri, String title,
+      String description, String[] tags, int prepTimeMinutes,
+      int cookTimeMinutes, double estimatedCalories,
+      RecipeCallback callback);
 }
