@@ -18,6 +18,9 @@ public final class Constants {
   // Auth endpoints (signup, login, logout)
   public static final String AUTH_BASE_URL = SUPABASE_URL + "/auth/v1/";
 
+  // Storage (video/image upload)
+  public static final String STORAGE_BASE_URL = SUPABASE_URL + "/storage/v1/";
+
   // Edge Functions (Gemini chatbot later)
   public static final String FUNCTIONS_BASE_URL = SUPABASE_URL + "/functions/v1/";
 }

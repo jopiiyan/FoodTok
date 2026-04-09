@@ -1,8 +1,6 @@
 package com.example.foodtok.services;
 
 import com.example.foodtok.auth.AuthManager;
-import com.example.foodtok.services.IInteractionService;
-import com.example.foodtok.services.InteractionCallback;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -13,7 +11,6 @@ public class MockInteractionService implements IInteractionService {
   private final Set<String> likedRecipeIds = new HashSet<>();
   private final Set<String> savedRecipeIds = new HashSet<>();
 
-
   @Override
   public void likeRecipe(String recipeId, InteractionCallback callback) {
     if (!AuthManager.getInstance().isLoggedIn()) {
@@ -21,9 +18,9 @@ public class MockInteractionService implements IInteractionService {
       return;
     }
 
-    if(likedRecipeIds.contains(recipeId)){
+    if (likedRecipeIds.contains(recipeId)) {
       likedRecipeIds.remove(recipeId);
-    }else{
+    } else {
       likedRecipeIds.add(recipeId);
     }
 
@@ -38,9 +35,8 @@ public class MockInteractionService implements IInteractionService {
     }
 
     if (savedRecipeIds.contains(recipeId)) {
-
       savedRecipeIds.remove(recipeId);
-    }else{
+    } else {
       savedRecipeIds.add(recipeId);
     }
 
@@ -48,7 +44,8 @@ public class MockInteractionService implements IInteractionService {
   }
 
   @Override
-  public void addComment(String recipeId, String text, InteractionCallback callback) {
+  public void addComment(String recipeId, String text,
+      InteractionCallback callback) {
     if (!AuthManager.getInstance().isLoggedIn()) {
       callback.onError("Please log in first");
       return;
@@ -63,12 +60,12 @@ public class MockInteractionService implements IInteractionService {
   }
 
   @Override
-  public boolean isRecipeLiked(String recipeId) {
-    return likedRecipeIds.contains(recipeId);
+  public void isRecipeLiked(String recipeId, BooleanCallback callback) {
+    callback.onResult(likedRecipeIds.contains(recipeId));
   }
 
   @Override
-  public boolean isRecipeSaved(String recipeId) {
-    return savedRecipeIds.contains(recipeId);
+  public void isRecipeSaved(String recipeId, BooleanCallback callback) {
+    callback.onResult(savedRecipeIds.contains(recipeId));
   }
 }
