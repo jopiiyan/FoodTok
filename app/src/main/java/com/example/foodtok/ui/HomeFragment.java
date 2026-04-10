@@ -237,6 +237,11 @@ public class HomeFragment extends Fragment {
     });
 
     feedViewPager.setAdapter(feedAdapter);
+
+    int startPos = getArguments() != null ? getArguments().getInt("startPosition", 0) : 0;
+    if (startPos > 0) {
+      feedViewPager.setCurrentItem(startPos, false);
+    }
   }
 
   private void showToast(String message) {

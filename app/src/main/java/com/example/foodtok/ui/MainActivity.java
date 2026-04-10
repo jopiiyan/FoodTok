@@ -87,4 +87,10 @@ public class MainActivity extends AppCompatActivity {
         .replace(R.id.fragmentContainer, fragment)
         .commit();
   }
+
+    public void setBottomNavVisibility(boolean visible) {
+        findViewById(R.id.bottomNav).setVisibility(
+                visible ? View.VISIBLE : View.GONE
+        );
+    }
 }
