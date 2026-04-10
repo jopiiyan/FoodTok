@@ -304,11 +304,25 @@ public class OnboardingActivity extends AppCompatActivity {
               Response<ResponseBody> response) {
             String avatarUrl = null;
             if (response.isSuccessful()) {
-              avatarUrl = Constants.STORAGE_BASE_URL
-                  + "object/public/avatars/" + storagePath;
+              avatarUrl = Constants.SUPABASE_URL
+                  + "/storage/v1/object/public/avatars/"
+                  + storagePath;
             } else {
+              String errBody = "";
+              try {
+                if (response.errorBody() != null) {
+                  errBody = response.errorBody().string();
+                }
+              } catch (IOException ignored) {
+                // best-effort logging
+              }
               Log.w(TAG, "Avatar upload failed: "
-                  + response.code());
+                  + response.code() + " " + errBody);
+              runOnUiThread(() -> Toast.makeText(
+                  OnboardingActivity.this,
+                  "Avatar upload failed (" + response.code()
+                      + "). Check your 'avatars' bucket.",
+                  Toast.LENGTH_LONG).show());
             }
             String finalUrl = avatarUrl;
             runOnUiThread(() -> saveProfileToSupabase(finalUrl));
@@ -318,7 +332,12 @@ public class OnboardingActivity extends AppCompatActivity {
           public void onFailure(Call<ResponseBody> call,
               Throwable t) {
             Log.w(TAG, "Avatar upload network error", t);
-            runOnUiThread(() -> saveProfileToSupabase(null));
+            runOnUiThread(() -> {
+              Toast.makeText(OnboardingActivity.this,
+                  "Avatar upload network error: " + t.getMessage(),
+                  Toast.LENGTH_LONG).show();
+              saveProfileToSupabase(null);
+            });
           }
         });
   }
