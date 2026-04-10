@@ -34,6 +34,9 @@ public class SupabaseAuthService implements IAuthService {
 
                 if (response.isSuccessful() && response.body() != null) {
                     handleAuthSuccess(response.body(), callback);
+                } else if (response.code() == 422 || response.code() == 400) {
+                    callback.onError(
+                        "This email is already registered. Log in with your existing account.");
                 } else {
                     callback.onError("Sign up failed: " + response.code());
                 }
