@@ -10,4 +10,7 @@ public class UserDto {
 
   @SerializedName("username")
   public String username;
+
+  @SerializedName("avatar_url")
+  public String avatarUrl;
 }

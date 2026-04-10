@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/foodtok_cream"
+    android:padding="24dp">
+
+  <!-- Step indicator at top -->
+  <TextView
+      android:id="@+id/tvStepIndicator"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_alignParentTop="true"
+      android:layout_centerHorizontal="true"
+      android:text="Step 1 of 3"
+      android:textColor="@color/foodtok_text_secondary"
+      android:textSize="14sp" />
+
+  <!-- ViewFlipper for 3 steps -->
+  <ViewFlipper
+      android:id="@+id/viewFlipper"
+      android:layout_width="match_parent"
+      android:layout_height="0dp"
+      android:layout_above="@id/bottomButtons"
+      android:layout_below="@id/tvStepIndicator"
+      android:layout_marginTop="16dp"
+      android:layout_marginBottom="16dp">
+
+    <!-- Step 1: Avatar picker -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:gravity="center_horizontal"
+          android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Choose your avatar"
+            android:textAlignment="center"
+            android:textColor="@color/foodtok_text_primary"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Pick a profile picture that represents you"
+            android:textAlignment="center"
+            android:textColor="@color/foodtok_text_secondary"
+            android:textSize="14sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvAvatars"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+      </LinearLayout>
+    </ScrollView>
+
+    <!-- Step 2: Preference tags -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:gravity="center_horizontal"
+          android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="What do you like to cook?"
+            android:textAlignment="center"
+            android:textColor="@color/foodtok_text_primary"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Select your favorite cuisines and styles"
+            android:textAlignment="center"
+            android:textColor="@color/foodtok_text_secondary"
+            android:textSize="14sp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupPreferences"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+      </LinearLayout>
+    </ScrollView>
+
+    <!-- Step 3: Allergen blacklist -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+      <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:gravity="center_horizontal"
+          android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Any allergies?"
+            android:textAlignment="center"
+            android:textColor="@color/foodtok_text_primary"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="We will warn you about recipes with these ingredients"
+            android:textAlignment="center"
+            android:textColor="@color/foodtok_text_secondary"
+            android:textSize="14sp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupAllergens"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+      </LinearLayout>
+    </ScrollView>
+
+  </ViewFlipper>
+
+  <!-- Bottom navigation buttons -->
+  <LinearLayout
+      android:id="@+id/bottomButtons"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_alignParentBottom="true"
+      android:layout_marginBottom="16dp"
+      android:gravity="center"
+      android:orientation="horizontal">
+
+    <Button
+        android:id="@+id/btnBack"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:background="@drawable/bg_button_outline"
+        android:text="Back"
+        android:textColor="@color/foodtok_text_primary"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/btnSkip"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:background="@drawable/bg_button_secondary"
+        android:text="Skip"
+        android:textColor="@color/foodtok_text_primary"
+        android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/btnNext"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="@drawable/bg_button_primary"
+        android:backgroundTint="@color/foodtok_green"
+        android:text="Next"
+        android:textColor="@color/foodtok_text_on_dark"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+  </LinearLayout>
+
+</RelativeLayout>
