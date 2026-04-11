@@ -250,17 +250,15 @@ public class HomeFragment extends Fragment {
       }
     });
 
-    feedViewPager.setAdapter(feedAdapter);
-    // Prime the first item now that the adapter is attached.
-    feedViewPager.post(() -> {
-      if (playerPool != null) {
-        playerPool.setCurrentPosition(feedViewPager.getCurrentItem());
-      }
-    });
-
+    // Prime the pool BEFORE setting the adapter so the first bind
+    // finds a ready player to attach. Otherwise the first video stays
+    // blank until the user scrolls away and back.
     int startPos = getArguments() != null ? getArguments().getInt("startPosition", 0) : 0;
+    playerPool.setCurrentPosition(startPos);
+
+    feedViewPager.setAdapter(feedAdapter);
     if (startPos > 0) {
-        feedViewPager.setCurrentItem(startPos, false);
+      feedViewPager.setCurrentItem(startPos, false);
     }
   }
 
