@@ -39,7 +39,6 @@ public class ProfileUserFragment extends Fragment {
 
 
 
-
     private List<RecipeDto> myRecipes = new ArrayList<>();
     private List<RecipeDto> savedRecipes = new ArrayList<>();
 
@@ -75,9 +74,21 @@ public class ProfileUserFragment extends Fragment {
         });
 
         //GridLayoutManager
-        rvProfileRecipes.setLayoutManager(new GridLayoutManager(getContext(), 2));
+        rvProfileRecipes.setLayoutManager(new GridLayoutManager(getContext(), 3));
         adapter = new ProfileRecipeAdapter(myRecipes);
         rvProfileRecipes.setAdapter(adapter);
+
+        adapter.setOnRecipeClickListener(position -> {
+            String userId = AuthManager.getInstance().getCurrentUser() != null
+                    ? AuthManager.getInstance().getCurrentUser().getId() : "";
+            String feedType = isMyRecipesTab ? "my_recipes" : "saved";
+            ProfileFeedFragment feedFragment = ProfileFeedFragment.newInstance(position, feedType, userId);
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragmentContainer, feedFragment)
+                    .addToBackStack(null)
+                    .commit();
+        });
 
         tabMyRecipes.setOnClickListener(v -> {
             switchTab(true);

@@ -18,8 +18,8 @@
 
     <item
         android:id="@+id/nav_chat"
-        android:icon="@android:drawable/ic_menu_send"
-        android:title="Chat" />
+        android:icon="@drawable/baseline_grid"
+        android:title="Grid" />
 
     <item
         android:id="@+id/nav_profile"

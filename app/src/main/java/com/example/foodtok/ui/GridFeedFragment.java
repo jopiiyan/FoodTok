@@ -2,21 +2,17 @@ package com.example.foodtok.ui;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.example.foodtok.R;
 import com.example.foodtok.adapters.FeedAdapter;
@@ -30,125 +26,70 @@ import com.example.foodtok.util.FeedVideoPlayerPool;
 
 import java.util.List;
 
-/** Main feed fragment with vertical ViewPager2 for recipe scrolling and top navigation. */
-public class HomeFragment extends Fragment {
+/** Self-contained full-screen doomscroll feed for the grid explore tab. */
+public class GridFeedFragment extends Fragment {
 
-  private static final float ALPHA_ACTIVE = 1.0f;
-  private static final float ALPHA_INACTIVE = 0.45f;
   private static final int FEED_PAGE_SIZE = 20;
 
-  private ViewPager2 feedViewPager;
+  private ViewPager2 gridFeedViewPager;
   private FeedAdapter feedAdapter;
   private FeedVideoPlayerPool playerPool;
-  private ProgressBar feedLoadingSpinner;
 
-  private TextView navIngredients;
-  private TextView navForYou;
-  private TextView navChat;
-  private boolean isKeyboardVisible;
+  @Override
+  public void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    if (getActivity() instanceof MainActivity) {
+      ((MainActivity) getActivity()).setBottomNavVisibility(false);
+    }
+  }
+
+  @Override
+  public void onDestroy() {
+    super.onDestroy();
+    if (getActivity() instanceof MainActivity) {
+      ((MainActivity) getActivity()).setBottomNavVisibility(true);
+    }
+  }
 
   @Nullable
   @Override
   public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-    View view = inflater.inflate(R.layout.fragment_home, container, false);
-    setupTopNav(view);
-    setupFeedPager(view);
+                           @Nullable ViewGroup container,
+                           @Nullable Bundle savedInstanceState) {
+    View view = inflater.inflate(R.layout.fragment_grid_feed, container, false);
+    gridFeedViewPager = view.findViewById(R.id.gridFeedViewPager);
+    ProgressBar spinner = view.findViewById(R.id.gridFeedLoadingSpinner);
 
-    ViewCompat.setOnApplyWindowInsetsListener(view, (v, windowInsets) -> {
-      isKeyboardVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
-
-      if (feedViewPager != null) {
-        // Lock the vertical pager
-        feedViewPager.setUserInputEnabled(!isKeyboardVisible);
-      }
-
-      // Force the Top Nav to highlight "Chat" (index 2) when typing
-      if (isKeyboardVisible) {
-        updateNavStyling(2);
-      }
-
-      return windowInsets;
-    });
-
-    return view;
-  }
-
-  private void setupTopNav(View view) {
-    navIngredients = view.findViewById(R.id.navIngredients);
-    navForYou = view.findViewById(R.id.navForYou);
-    navChat = view.findViewById(R.id.navChat);
-
-    // Default active tab = For You
-    updateNavStyling(1);
-
-    navIngredients.setOnClickListener(v -> {
-      if (feedAdapter != null) {
-        feedAdapter.navigateCurrentPageTo(0);
-      }
-    });
-
-    navForYou.setOnClickListener(v -> {
-      if (feedAdapter != null) {
-        feedAdapter.navigateCurrentPageTo(1);
-      }
-    });
-
-    navChat.setOnClickListener(v -> {
-      if (feedAdapter != null) {
-        feedAdapter.navigateCurrentPageTo(2);
-      }
-    });
-  }
-
-  private void updateNavStyling(int activePage) {
-    TextView[] tabs = {navIngredients, navForYou, navChat};
-    for (int i = 0; i < tabs.length; i++) {
-      boolean active = (i == activePage);
-      tabs[i].setTypeface(null, active ? Typeface.BOLD : Typeface.NORMAL);
-      tabs[i].animate()
-          .alpha(active ? ALPHA_ACTIVE : ALPHA_INACTIVE)
-          .setDuration(150)
-          .start();
-    }
-  }
-
-  private void setupFeedPager(View view) {
-    feedViewPager = view.findViewById(R.id.feedViewPager);
-    feedLoadingSpinner = view.findViewById(R.id.feedLoadingSpinner);
-    feedLoadingSpinner.setVisibility(View.VISIBLE);
+    view.findViewById(R.id.btnGridFeedBack).setOnClickListener(v ->
+        requireActivity().getSupportFragmentManager().popBackStack());
 
     RecipeServiceProvider.getRecipeService().getFeedRecipes(
         0, FEED_PAGE_SIZE, new RecipeListCallback() {
           @Override
           public void onSuccess(List<Recipe> recipes) {
-            if (getActivity() == null) {
-              return;
-            }
+            if (getActivity() == null) return;
             getActivity().runOnUiThread(() -> {
-              feedLoadingSpinner.setVisibility(View.GONE);
+              spinner.setVisibility(View.GONE);
               initFeedAdapter(recipes);
             });
           }
 
           @Override
           public void onError(String message) {
-            if (getActivity() == null) {
-              return;
-            }
+            if (getActivity() == null) return;
             getActivity().runOnUiThread(() -> {
-              feedLoadingSpinner.setVisibility(View.GONE);
-              showToast("Failed to load feed: " + message);
+              spinner.setVisibility(View.GONE);
+              showToast("Failed to load: " + message);
             });
           }
         });
+
+    return view;
   }
 
   private void initFeedAdapter(List<Recipe> recipes) {
-    playerPool = new FeedVideoPlayerPool(requireContext());
-    playerPool.setRecipes(recipes);
-
+      playerPool = new FeedVideoPlayerPool(requireContext());
+      playerPool.setRecipes(recipes);
     feedAdapter = new FeedAdapter(recipes, new OnRecipeInteractionListener() {
       @Override
       public void onLikeClicked(Recipe recipe) {
@@ -163,8 +104,7 @@ public class HomeFragment extends Fragment {
               @Override
               public void onError(String message) {
                 if ("Please log in first".equals(message)) {
-                  Intent intent = new Intent(getActivity(), LoginActivity.class);
-                  startActivity(intent);
+                  startActivity(new Intent(getActivity(), LoginActivity.class));
                 } else {
                   showToast(message);
                 }
@@ -190,8 +130,7 @@ public class HomeFragment extends Fragment {
               @Override
               public void onError(String message) {
                 if ("Please log in first".equals(message)) {
-                  Intent intent = new Intent(getActivity(), LoginActivity.class);
-                  startActivity(intent);
+                  startActivity(new Intent(getActivity(), LoginActivity.class));
                 } else {
                   showToast(message);
                 }
@@ -212,8 +151,7 @@ public class HomeFragment extends Fragment {
               @Override
               public void onError(String message) {
                 if ("Please log in first".equals(message)) {
-                  Intent intent = new Intent(getActivity(), LoginActivity.class);
-                  startActivity(intent);
+                  startActivity(new Intent(getActivity(), LoginActivity.class));
                 } else {
                   showToast(message);
                 }
@@ -222,13 +160,10 @@ public class HomeFragment extends Fragment {
       }
     }, playerPool);
 
-    feedAdapter.setParentVerticalPager(feedViewPager);
+    feedAdapter.setParentVerticalPager(gridFeedViewPager);
 
-    // Update nav style when horizontal page changes inside current recipe card.
-    // Also pause video when leaving the center page, resume when returning.
     feedAdapter.setOnHorizontalPageChangedListener((adapterPosition, horizontalPage) -> {
-      if (adapterPosition == feedViewPager.getCurrentItem()) {
-        updateNavStyling(horizontalPage);
+      if (adapterPosition == gridFeedViewPager.getCurrentItem()) {
         if (horizontalPage == 1) {
           playerPool.resumeCurrent();
         } else {
@@ -237,31 +172,27 @@ public class HomeFragment extends Fragment {
       }
     });
 
-    // Drive player pool on vertical swipe + reset top nav to "For You".
-    feedViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+    gridFeedViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
       @Override
       public void onPageSelected(int position) {
-        if (!isKeyboardVisible) {
-          updateNavStyling(1);
-        }
         if (playerPool != null) {
           playerPool.setCurrentPosition(position);
         }
       }
     });
 
-    feedViewPager.setAdapter(feedAdapter);
-    // Prime the first item now that the adapter is attached.
-    feedViewPager.post(() -> {
-      if (playerPool != null) {
-        playerPool.setCurrentPosition(feedViewPager.getCurrentItem());
-      }
-    });
+    gridFeedViewPager.setAdapter(feedAdapter);
 
     int startPos = getArguments() != null ? getArguments().getInt("startPosition", 0) : 0;
     if (startPos > 0) {
-        feedViewPager.setCurrentItem(startPos, false);
+      gridFeedViewPager.setCurrentItem(startPos, false);
     }
+
+    gridFeedViewPager.post(() -> {
+      if (playerPool != null) {
+        playerPool.setCurrentPosition(gridFeedViewPager.getCurrentItem());
+      }
+    });
   }
 
   @Override
@@ -287,8 +218,6 @@ public class HomeFragment extends Fragment {
       playerPool.release();
       playerPool = null;
     }
-
-
   }
 
   private void showToast(String message) {
@@ -296,5 +225,4 @@ public class HomeFragment extends Fragment {
       Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
     }
   }
-
 }

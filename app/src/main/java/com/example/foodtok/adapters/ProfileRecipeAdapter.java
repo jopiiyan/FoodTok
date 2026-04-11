@@ -14,10 +14,19 @@ import java.util.List;
 
 public class ProfileRecipeAdapter extends RecyclerView.Adapter<ProfileRecipeAdapter.ViewHolder> {
 
+    public interface OnRecipeClickListener {
+        void onRecipeClick(int position);
+    }
+
     private List<RecipeDto> recipes;
+    private OnRecipeClickListener clickListener;
 
     public ProfileRecipeAdapter(List<RecipeDto> recipes) {
         this.recipes = recipes;
+    }
+
+    public void setOnRecipeClickListener(OnRecipeClickListener listener) {
+        this.clickListener = listener;
     }
 
     public void updateData(List<RecipeDto> newRecipes) {
@@ -36,6 +45,9 @@ public class ProfileRecipeAdapter extends RecyclerView.Adapter<ProfileRecipeAdap
     public void onBindViewHolder(ViewHolder holder, int position) {
         RecipeDto recipe = recipes.get(position);
         // TODO: use Glide to load recipe.getImageUrl() into holder.ivRecipeThumb
+        holder.itemView.setOnClickListener(v -> {
+            if (clickListener != null) clickListener.onRecipeClick(holder.getAdapterPosition());
+        });
     }
 
     @Override
