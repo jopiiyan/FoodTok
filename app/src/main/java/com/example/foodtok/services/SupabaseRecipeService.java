@@ -1,7 +1,10 @@
 package com.example.foodtok.services;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
+import android.os.Build;
 
 import com.example.foodtok.auth.AuthManager;
 import com.example.foodtok.models.Recipe;
@@ -10,6 +13,7 @@ import com.example.foodtok.models.dto.UploadRecipeRequest;
 import com.example.foodtok.util.ApiClient;
 import com.example.foodtok.util.Constants;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -102,7 +106,8 @@ public class SupabaseRecipeService implements IRecipeService {
       RecipeCallback callback) {
     String userId = AuthManager.getInstance().getCurrentUser().getId();
     String fileId = UUID.randomUUID().toString();
-    String storagePath = userId + "/" + fileId + ".mp4";
+    String videoStoragePath = userId + "/" + fileId + ".mp4";
+    String thumbnailStoragePath = userId + "/" + fileId + ".jpg";
 
     // Step 1: Read the video bytes from the content Uri
     byte[] videoBytes;
@@ -113,26 +118,40 @@ public class SupabaseRecipeService implements IRecipeService {
       return;
     }
 
-    RequestBody body = RequestBody.create(
+    // Step 2: Extract a thumbnail from the video. If extraction fails,
+    // we still proceed with the upload — the grid has a client-side
+    // fallback that decodes the first frame on demand.
+    final byte[] thumbnailBytes = extractThumbnailJpeg(context, videoUri);
+
+    RequestBody videoBody = RequestBody.create(
         MediaType.parse("video/mp4"), videoBytes);
 
-    // Step 2: Upload video to Supabase Storage
-    storageApi.uploadFile("videos", storagePath, "video/mp4", body)
+    // Step 3: Upload video to Supabase Storage
+    storageApi.uploadFile("videos", videoStoragePath, "video/mp4", videoBody)
         .enqueue(new Callback<ResponseBody>() {
           @Override
           public void onResponse(Call<ResponseBody> call,
               Response<ResponseBody> response) {
-            if (response.isSuccessful()) {
-              // Step 3: Build the public URL and create the recipe row
-              String videoUrl = Constants.STORAGE_BASE_URL
-                  + "object/public/videos/" + storagePath;
-              createRecipeRow(userId, title, description, videoUrl,
-                  tags, prepTimeMinutes, cookTimeMinutes,
-                  estimatedCalories, callback);
-            } else {
+            if (!response.isSuccessful()) {
               callback.onError("Video upload failed: "
                   + response.code());
+              return;
             }
+            String videoUrl = Constants.STORAGE_BASE_URL
+                + "object/public/videos/" + videoStoragePath;
+
+            // Step 4: Upload thumbnail (best-effort, non-blocking for
+            // the recipe row creation on failure).
+            if (thumbnailBytes == null) {
+              createRecipeRow(userId, title, description, videoUrl, null,
+                  tags, prepTimeMinutes, cookTimeMinutes,
+                  estimatedCalories, callback);
+              return;
+            }
+            uploadThumbnail(thumbnailBytes, thumbnailStoragePath, thumbUrl ->
+                createRecipeRow(userId, title, description, videoUrl, thumbUrl,
+                    tags, prepTimeMinutes, cookTimeMinutes,
+                    estimatedCalories, callback));
           }
 
           @Override
@@ -142,18 +161,104 @@ public class SupabaseRecipeService implements IRecipeService {
         });
   }
 
+  /** Simple single-arg callback for the thumbnail upload step. */
+  private interface ThumbnailUploadCallback {
+    void onDone(String thumbnailUrl);
+  }
+
+  /**
+   * Uploads a JPEG thumbnail to the "thumbnails" bucket. On failure the
+   * callback is still invoked with {@code null} so recipe creation can
+   * proceed — a missing thumbnail is non-fatal.
+   */
+  private void uploadThumbnail(byte[] jpegBytes, String storagePath,
+      ThumbnailUploadCallback callback) {
+    RequestBody body = RequestBody.create(
+        MediaType.parse("image/jpeg"), jpegBytes);
+    storageApi.uploadFile("thumbnails", storagePath, "image/jpeg", body)
+        .enqueue(new Callback<ResponseBody>() {
+          @Override
+          public void onResponse(Call<ResponseBody> call,
+              Response<ResponseBody> response) {
+            if (response.isSuccessful()) {
+              callback.onDone(Constants.STORAGE_BASE_URL
+                  + "object/public/thumbnails/" + storagePath);
+            } else {
+              callback.onDone(null);
+            }
+          }
+
+          @Override
+          public void onFailure(Call<ResponseBody> call, Throwable t) {
+            callback.onDone(null);
+          }
+        });
+  }
+
+  /**
+   * Extracts a frame from the video at the 1-second mark, scales it to
+   * a reasonable thumbnail size, and encodes as JPEG. Returns null if
+   * extraction fails for any reason.
+   */
+  private byte[] extractThumbnailJpeg(Context context, Uri videoUri) {
+    final int targetWidth = 720;
+    final int targetHeight = 1080;
+    final long frameTimeUs = 1_000_000L;
+    MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+    Bitmap frame = null;
+    try {
+      retriever.setDataSource(context, videoUri);
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+        frame = retriever.getScaledFrameAtTime(
+            frameTimeUs,
+            MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+            targetWidth,
+            targetHeight);
+      }
+      if (frame == null) {
+        frame = retriever.getFrameAtTime(
+            frameTimeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+      }
+      if (frame == null) {
+        return null;
+      }
+      if (frame.getWidth() > targetWidth * 2) {
+        Bitmap scaled = Bitmap.createScaledBitmap(
+            frame, targetWidth, targetHeight, true);
+        if (scaled != frame) {
+          frame.recycle();
+          frame = scaled;
+        }
+      }
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      frame.compress(Bitmap.CompressFormat.JPEG, 80, out);
+      return out.toByteArray();
+    } catch (RuntimeException e) {
+      return null;
+    } finally {
+      if (frame != null) {
+        frame.recycle();
+      }
+      try {
+        retriever.release();
+      } catch (IOException | RuntimeException ignored) {
+      }
+    }
+  }
+
   /**
    * Creates the recipe row in PostgREST after the video has been uploaded.
    */
   private void createRecipeRow(String authorId, String title,
-      String description, String videoUrl, String[] tags,
-      int prepTimeMinutes, int cookTimeMinutes,
+      String description, String videoUrl, String thumbnailUrl,
+      String[] tags, int prepTimeMinutes, int cookTimeMinutes,
       double estimatedCalories, RecipeCallback callback) {
     UploadRecipeRequest request = new UploadRecipeRequest();
     request.authorId = authorId;
     request.title = title;
     request.description = description;
     request.videoUrl = videoUrl;
+    request.thumbnailUrl = thumbnailUrl;
     request.tags = tags;
     request.prepTimeMinutes = prepTimeMinutes;
     request.cookTimeMinutes = cookTimeMinutes;

@@ -8,9 +8,12 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.text.TextUtils;
+
 import com.bumptech.glide.Glide;
 import com.example.foodtok.R;
 import com.example.foodtok.models.Recipe;
+import com.example.foodtok.util.VideoThumbnailLoader;
 
 import java.util.List;
 
@@ -40,10 +43,16 @@ public class GridAdapter extends RecyclerView.Adapter<GridAdapter.ViewHolder> {
   @Override
   public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
     Recipe recipe = recipes.get(position);
-    Glide.with(holder.ivRecipeThumb)
-        .load(recipe.getThumbnailUrl())
-        .centerCrop()
-        .into(holder.ivRecipeThumb);
+    if (!TextUtils.isEmpty(recipe.getThumbnailUrl())) {
+      Glide.with(holder.ivRecipeThumb)
+          .load(recipe.getThumbnailUrl())
+          .centerCrop()
+          .into(holder.ivRecipeThumb);
+    } else {
+      // No thumbnail uploaded — extract the first frame of the video.
+      Glide.with(holder.ivRecipeThumb).clear(holder.ivRecipeThumb);
+      VideoThumbnailLoader.load(recipe.getVideoUrl(), holder.ivRecipeThumb);
+    }
     holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
   }
 
