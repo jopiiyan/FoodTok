@@ -93,4 +93,17 @@ public class MainActivity extends AppCompatActivity {
                 visible ? View.VISIBLE : View.GONE
         );
     }
+
+  /**
+   * Switches to the Search tab and runs an immediate search for the
+   * given tag. Used by clickable hashtags in the feed.
+   */
+  public void navigateToSearchWithTag(String tag) {
+    if (tag == null || tag.trim().isEmpty()) {
+      return;
+    }
+    SearchFragment.setPendingTag(tag.trim());
+    BottomNavigationView bottomNav = findViewById(R.id.bottomNav);
+    bottomNav.setSelectedItemId(R.id.nav_search);
+  }
 }

@@ -1,5 +1,11 @@
 package com.example.foodtok.adapters;
 
+import android.content.Context;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
+import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,6 +14,10 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.content.ContextCompat;
+
+import com.example.foodtok.ui.MainActivity;
 
 import androidx.annotation.NonNull;
 import androidx.media3.ui.PlayerView;
@@ -279,11 +289,7 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
       holder.authorNameText.setText("");
     }
 
-    if (recipe.getTags() != null && !recipe.getTags().isEmpty()) {
-      holder.recipeTagsText.setText(String.join("  ", recipe.getTags()));
-    } else {
-      holder.recipeTagsText.setText("");
-    }
+    bindClickableHashtags(holder.recipeTagsText, recipe.getTags());
 
     // Reflect current like/save/not-interested state (async — set default, update on callback)
     holder.likeButton.clearColorFilter();
@@ -484,6 +490,58 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     long elapsed = System.currentTimeMillis() - lastSendTime;
     long remaining = Math.max(0, SEND_COOLDOWN_MS - elapsed);
     sendButton.postDelayed(() -> sendButton.setEnabled(true), remaining);
+  }
+
+  /**
+   * Renders the recipe tag list as a single line of "#tag" tokens where
+   * each tag is an independent clickable span. Tapping a tag jumps the
+   * user to the Search tab with that tag pre-applied as the query.
+   */
+  private void bindClickableHashtags(TextView target, List<String> tags) {
+    if (tags == null || tags.isEmpty()) {
+      target.setText("");
+      target.setMovementMethod(null);
+      return;
+    }
+
+    SpannableStringBuilder sb = new SpannableStringBuilder();
+    int accent = ContextCompat.getColor(target.getContext(), android.R.color.white);
+    for (int i = 0; i < tags.size(); i++) {
+      String raw = tags.get(i);
+      if (raw == null || raw.trim().isEmpty()) {
+        continue;
+      }
+      final String tag = raw.trim();
+      String token = "#" + tag;
+      int start = sb.length();
+      sb.append(token);
+      int end = sb.length();
+
+      ClickableSpan click = new ClickableSpan() {
+        @Override
+        public void onClick(@NonNull View widget) {
+          Context ctx = widget.getContext();
+          while (ctx instanceof android.content.ContextWrapper
+              && !(ctx instanceof MainActivity)) {
+            ctx = ((android.content.ContextWrapper) ctx).getBaseContext();
+          }
+          if (ctx instanceof MainActivity) {
+            ((MainActivity) ctx).navigateToSearchWithTag(tag);
+          }
+        }
+      };
+      sb.setSpan(click, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      sb.setSpan(new ForegroundColorSpan(accent), start, end,
+          Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+      if (i < tags.size() - 1) {
+        sb.append("  ");
+      }
+    }
+
+    target.setText(sb);
+    target.setMovementMethod(LinkMovementMethod.getInstance());
+    target.setHighlightColor(android.graphics.Color.TRANSPARENT);
   }
 
   // ── ViewHolder inner classes ────────────────────────────────────────

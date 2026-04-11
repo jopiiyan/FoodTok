@@ -66,6 +66,17 @@ public class SearchFragment extends Fragment {
   private final Trie searchTrie = new Trie();
   private final Set<String> selectedTokens = new HashSet<>();
 
+  /**
+   * One-shot tag handed in from elsewhere in the app (e.g. a clickable
+   * hashtag in the feed). Consumed and cleared on next view creation.
+   */
+  private static String pendingTag;
+
+  /** Stashes a tag for the next SearchFragment instance to auto-search. */
+  public static void setPendingTag(String tag) {
+    pendingTag = tag;
+  }
+
   private IngredientSuggestionAdapter suggestionAdapter;
   private GridAdapter resultAdapter;
   private final List<Recipe> resultRecipes = new ArrayList<>();
@@ -98,6 +109,13 @@ public class SearchFragment extends Fragment {
     loadTags();
 
     tvSearchAction.setOnClickListener(v -> performSearch());
+
+    if (pendingTag != null) {
+      String tag = pendingTag;
+      pendingTag = null;
+      addSelectedToken(tag);
+      performSearch();
+    }
   }
 
   private void setupSuggestions() {

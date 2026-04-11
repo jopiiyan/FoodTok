@@ -46,6 +46,7 @@ public class HomeFragment extends Fragment {
   private TextView navForYou;
   private TextView navChat;
   private boolean isKeyboardVisible;
+  private int currentHorizontalPage = 1;
 
   @Nullable
   @Override
@@ -90,8 +91,15 @@ public class HomeFragment extends Fragment {
     });
 
     navForYou.setOnClickListener(v -> {
+      // If the user is on Ingredients/Chat, just slide back to the
+      // video page — don't tear down the feed. Only refresh when
+      // they're already on For You (mirrors re-tapping the bottom nav).
+      boolean alreadyOnForYou = currentHorizontalPage == 1;
       if (feedAdapter != null) {
         feedAdapter.navigateCurrentPageTo(1);
+      }
+      if (alreadyOnForYou) {
+        refreshFeed();
       }
     });
 
@@ -117,6 +125,27 @@ public class HomeFragment extends Fragment {
   private void setupFeedPager(View view) {
     feedViewPager = view.findViewById(R.id.feedViewPager);
     feedLoadingSpinner = view.findViewById(R.id.feedLoadingSpinner);
+    loadFeed();
+  }
+
+  /**
+   * Re-fetches the feed from the server, tearing down the existing
+   * player pool and adapter so the user gets a fresh batch of recipes.
+   * Mirrors the effect of re-tapping the Home tab on the bottom nav.
+   */
+  private void refreshFeed() {
+    if (playerPool != null) {
+      playerPool.release();
+      playerPool = null;
+    }
+    feedAdapter = null;
+    if (feedViewPager != null) {
+      feedViewPager.setAdapter(null);
+    }
+    loadFeed();
+  }
+
+  private void loadFeed() {
     feedLoadingSpinner.setVisibility(View.VISIBLE);
 
     RecipeServiceProvider.getRecipeService().getFeedRecipes(
@@ -228,6 +257,7 @@ public class HomeFragment extends Fragment {
     // Also pause video when leaving the center page, resume when returning.
     feedAdapter.setOnHorizontalPageChangedListener((adapterPosition, horizontalPage) -> {
       if (adapterPosition == feedViewPager.getCurrentItem()) {
+        currentHorizontalPage = horizontalPage;
         updateNavStyling(horizontalPage);
         if (horizontalPage == 1) {
           playerPool.resumeCurrent();
@@ -243,6 +273,7 @@ public class HomeFragment extends Fragment {
       public void onPageSelected(int position) {
         if (!isKeyboardVisible) {
           updateNavStyling(1);
+          currentHorizontalPage = 1;
         }
         if (playerPool != null) {
           playerPool.setCurrentPosition(position);
