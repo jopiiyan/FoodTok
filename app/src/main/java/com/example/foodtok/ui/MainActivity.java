@@ -103,22 +103,24 @@ public class MainActivity extends AppCompatActivity {
     FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
     ft.setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out);
 
-    // Profile tab must always reflect current auth state, so recreate it.
+    Fragment target;
+
     if (TAG_PROFILE.equals(tag)) {
+      // Profile tab must always reflect current auth state, so recreate it.
       Fragment existing = getSupportFragmentManager().findFragmentByTag(TAG_PROFILE);
       if (existing != null) {
         ft.remove(existing);
       }
-    }
-
-    Fragment target = getSupportFragmentManager().findFragmentByTag(tag);
-
-    // Create the fragment if it doesn't exist yet.
-    if (target == null) {
       target = createFragmentForTag(tag);
       ft.add(R.id.fragmentContainer, target, tag);
     } else {
-      ft.show(target);
+      target = getSupportFragmentManager().findFragmentByTag(tag);
+      if (target == null) {
+        target = createFragmentForTag(tag);
+        ft.add(R.id.fragmentContainer, target, tag);
+      } else {
+        ft.show(target);
+      }
     }
 
     // Hide the previously active fragment.

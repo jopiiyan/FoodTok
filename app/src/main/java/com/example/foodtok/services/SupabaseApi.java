@@ -6,6 +6,7 @@ import com.example.foodtok.models.dto.CreateFollowRequest;
 import com.example.foodtok.models.dto.CreateIngredientRequest;
 import com.example.foodtok.models.dto.CreateInteractionRequest;
 import com.example.foodtok.models.dto.CreateRecipeIngredientRequest;
+import com.example.foodtok.models.dto.CreateSavedRecipeRequest;
 import com.example.foodtok.models.dto.IngredientDto;
 import com.example.foodtok.models.dto.FollowDto;
 import com.example.foodtok.models.dto.InteractionDto;
@@ -199,6 +200,19 @@ public interface SupabaseApi {
             @Query("user_id") String userIdFilter,
             @Query("select") String select,
             @Query("order") String order
+    );
+
+    /** Inserts a row into {@code saved_recipes}. */
+    @POST("saved_recipes")
+    Call<List<SavedRecipeDto>> createSavedRecipe(
+        @Body CreateSavedRecipeRequest request
+    );
+
+    /** Deletes a row from {@code saved_recipes} by user and recipe filters. */
+    @DELETE("saved_recipes")
+    Call<Void> deleteSavedRecipe(
+        @Query("user_id") String userIdFilter,
+        @Query("recipe_id") String recipeIdFilter
     );
 
   // ── Profiles (read) ──────────────────────────────────────────────────

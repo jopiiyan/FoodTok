@@ -1,7 +1,9 @@
 package com.example.foodtok.services;
 
 import com.example.foodtok.models.dto.CreateInteractionRequest;
+import com.example.foodtok.models.dto.CreateSavedRecipeRequest;
 import com.example.foodtok.models.dto.InteractionDto;
+import com.example.foodtok.models.dto.SavedRecipeDto;
 import com.example.foodtok.util.ApiClient;
 import com.example.foodtok.util.SessionManager;
 
@@ -112,6 +114,9 @@ public class SupabaseInteractionService implements IInteractionService {
           public void onResponse(Call<List<InteractionDto>> call,
               Response<List<InteractionDto>> response) {
             if (response.isSuccessful()) {
+              if ("save".equals(type)) {
+                syncSavedRecipeInsert(userId, recipeId);
+              }
               callback.onSuccess();
             } else {
               callback.onError("Failed to save interaction: "
@@ -135,6 +140,9 @@ public class SupabaseInteractionService implements IInteractionService {
           public void onResponse(Call<Void> call,
               Response<Void> response) {
             if (response.isSuccessful()) {
+              if ("eq.save".equals(typeFilter)) {
+                syncSavedRecipeDelete(userFilter, recipeFilter);
+              }
               callback.onSuccess();
             } else {
               callback.onError("Failed to remove interaction: "
@@ -145,6 +153,50 @@ public class SupabaseInteractionService implements IInteractionService {
           @Override
           public void onFailure(Call<Void> call, Throwable t) {
             callback.onError("Network error: " + t.getMessage());
+          }
+        });
+  }
+
+  /**
+   * Inserts a matching row into {@code saved_recipes} so the profile
+   * Saved tab stays in sync with the {@code interactions} table.
+   */
+  private void syncSavedRecipeInsert(String userId, String recipeId) {
+    api.createSavedRecipe(new CreateSavedRecipeRequest(userId, recipeId))
+        .enqueue(new Callback<List<SavedRecipeDto>>() {
+          @Override
+          public void onResponse(
+              Call<List<SavedRecipeDto>> call,
+              Response<List<SavedRecipeDto>> resp) {
+            // Best-effort sync — no action on failure.
+          }
+
+          @Override
+          public void onFailure(
+              Call<List<SavedRecipeDto>> call,
+              Throwable t) {
+            // Best-effort sync.
+          }
+        });
+  }
+
+  /**
+   * Deletes the matching row from {@code saved_recipes} so the profile
+   * Saved tab stays in sync with the {@code interactions} table.
+   */
+  private void syncSavedRecipeDelete(String userFilter,
+      String recipeFilter) {
+    api.deleteSavedRecipe(userFilter, recipeFilter)
+        .enqueue(new Callback<Void>() {
+          @Override
+          public void onResponse(Call<Void> call,
+              Response<Void> resp) {
+            // Best-effort sync.
+          }
+
+          @Override
+          public void onFailure(Call<Void> call, Throwable t) {
+            // Best-effort sync.
           }
         });
   }
