@@ -149,6 +149,39 @@ public class SupabaseInteractionService implements IInteractionService {
         });
   }
 
+  @Override
+  public void getLikeCount(String recipeId, IntCallback callback) {
+    fetchInteractionCount(recipeId, "like", callback);
+  }
+
+  @Override
+  public void getSaveCount(String recipeId, IntCallback callback) {
+    fetchInteractionCount(recipeId, "save", callback);
+  }
+
+  private void fetchInteractionCount(String recipeId, String type,
+      IntCallback callback) {
+    // Pass null for user_id so Retrofit omits the param — returns all
+    // interactions of this type for the recipe across all users.
+    api.getInteractions(null, "eq." + recipeId, "eq." + type)
+        .enqueue(new Callback<List<InteractionDto>>() {
+          @Override
+          public void onResponse(Call<List<InteractionDto>> call,
+              Response<List<InteractionDto>> response) {
+            if (response.isSuccessful() && response.body() != null) {
+              callback.onResult(response.body().size());
+            } else {
+              callback.onError("Failed to fetch count: " + response.code());
+            }
+          }
+
+          @Override
+          public void onFailure(Call<List<InteractionDto>> call, Throwable t) {
+            callback.onError("Network error: " + t.getMessage());
+          }
+        });
+  }
+
   private void checkInteractionExists(String recipeId, String type,
       BooleanCallback callback) {
     String userId = SessionManager.getInstance().getUserId();
