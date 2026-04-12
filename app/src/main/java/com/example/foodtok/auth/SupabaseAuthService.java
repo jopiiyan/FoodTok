@@ -62,6 +62,9 @@ public class SupabaseAuthService implements IAuthService {
 
                 if (response.isSuccessful() && response.body() != null) {
                     handleAuthSuccess(response.body(), callback);
+                } else if (response.code() == 400) {
+                    callback.onError(
+                        "Incorrect email or password. Please try again.");
                 } else {
                     callback.onError("Login failed: " + response.code());
                 }
