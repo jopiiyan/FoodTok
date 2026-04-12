@@ -1,5 +1,6 @@
 package com.example.foodtok.adapters;
 
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -7,8 +8,10 @@ import android.widget.ImageView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.foodtok.R;
 import com.example.foodtok.models.dto.RecipeDto;
+import com.example.foodtok.util.VideoThumbnailLoader;
 
 import java.util.List;
 
@@ -31,7 +34,7 @@ public class ProfileRecipeAdapter extends RecyclerView.Adapter<ProfileRecipeAdap
 
     public void updateData(List<RecipeDto> newRecipes) {
         this.recipes = newRecipes;
-        notifyDataSetChanged(); // like React re-render
+        notifyDataSetChanged();
     }
 
     @Override
@@ -44,17 +47,34 @@ public class ProfileRecipeAdapter extends RecyclerView.Adapter<ProfileRecipeAdap
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         RecipeDto recipe = recipes.get(position);
-        // TODO: use Glide to load recipe.getImageUrl() into holder.ivRecipeThumb
+
+        if (!TextUtils.isEmpty(recipe.thumbnailUrl)) {
+            Glide.with(holder.itemView.getContext())
+                    .load(recipe.thumbnailUrl)
+                    .centerCrop()
+                    .into(holder.ivRecipeThumb);
+        } else {
+            VideoThumbnailLoader.load(recipe.videoUrl, holder.ivRecipeThumb);
+        }
+
         holder.itemView.setOnClickListener(v -> {
-            if (clickListener != null) clickListener.onRecipeClick(holder.getAdapterPosition());
+            if (clickListener != null) {
+                int adapterPosition = holder.getAdapterPosition();
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    clickListener.onRecipeClick(adapterPosition);
+                }
+            }
         });
     }
 
     @Override
-    public int getItemCount() { return recipes.size(); }
+    public int getItemCount() {
+        return recipes.size();
+    }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView ivRecipeThumb;
+
         ViewHolder(View view) {
             super(view);
             ivRecipeThumb = view.findViewById(R.id.ivRecipeThumb);

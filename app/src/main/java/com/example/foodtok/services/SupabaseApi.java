@@ -8,6 +8,7 @@ import com.example.foodtok.models.dto.IngredientDto;
 import com.example.foodtok.models.dto.FollowDto;
 import com.example.foodtok.models.dto.InteractionDto;
 import com.example.foodtok.models.dto.RecipeDto;
+import com.example.foodtok.models.dto.SavedRecipeDto;
 import com.example.foodtok.models.dto.TagDto;
 import com.example.foodtok.models.dto.UpdateProfileRequest;
 import com.example.foodtok.models.dto.UploadRecipeRequest;
@@ -50,6 +51,12 @@ public interface SupabaseApi {
       @Query("id") String idFilter,
       @Query("select") String select
   );
+
+    @GET("recipes")
+    Call<List<RecipeDto>> getRecipesByIds(
+            @Query("id") String idFilter,
+            @Query("select") String select
+    );
 
   /** Creates a new recipe row. */
   @POST("recipes")
@@ -132,7 +139,7 @@ public interface SupabaseApi {
 
     @GET("follows")
     Call<List<FollowDto>> getFollowing(
-            @Query("followers_id") String followerIdFilter,
+            @Query("follower_id") String followerIdFilter,
             @Query("select") String select
     );
 
@@ -145,5 +152,31 @@ public interface SupabaseApi {
             @Query("follower_id") String followerIdFilter,
             @Query("following_id") String followingIdFilter
     );
+
+    @GET("saved_recipes")
+    Call<List<SavedRecipeDto>> getSavedRecipes(
+            @Query("user_id") String userIdFilter,
+            @Query("select") String select,
+            @Query("order") String order
+    );
+
+  // ── Profiles (read) ──────────────────────────────────────────────────
+
+  /** Fetches one or more profiles by ID (supports {@code eq.<id>} or {@code in.(id1,id2,...)}). */
+  @GET("profiles")
+  Call<List<UserDto>> getProfiles(
+      @Query("id") String idFilter,
+      @Query("select") String select
+  );
+
+  // ── Follow relationship check ─────────────────────────────────────────
+
+  /** Returns the follow row if the relationship exists, empty list otherwise. */
+  @GET("follows")
+  Call<List<FollowDto>> checkFollow(
+      @Query("follower_id") String followerIdFilter,
+      @Query("following_id") String followingIdFilter,
+      @Query("select") String select
+  );
 
 }

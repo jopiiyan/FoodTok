@@ -3,10 +3,14 @@ package com.example.foodtok.ui;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.bumptech.glide.Glide;
 
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -19,12 +23,16 @@ import com.example.foodtok.auth.AuthManager;
 import com.example.foodtok.auth.AuthServiceProvider;
 import com.example.foodtok.models.dto.FollowDto;
 import com.example.foodtok.models.dto.RecipeDto;
+import com.example.foodtok.models.dto.SavedRecipeDto;
+import com.example.foodtok.models.dto.UserDto;
 import com.example.foodtok.services.SupabaseApi;
 import com.example.foodtok.util.ApiClient;
 
 import java.text.BreakIterator;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -32,13 +40,11 @@ import retrofit2.Response;
 
 public class ProfileUserFragment extends Fragment {
     private RecyclerView rvProfileRecipes;
+    private ImageView ivProfilePic;
     private TextView tabMyRecipes, tabSaved, tvFollowerCount, tvFollowingCount, userName, btnLogout, tvDisplayName, tvRecipeCount;
+    private View llFollowers, llFollowing;
 
     private boolean isMyRecipesTab = true;
-
-
-
-
     private List<RecipeDto> myRecipes = new ArrayList<>();
     private List<RecipeDto> savedRecipes = new ArrayList<>();
 
@@ -58,6 +64,9 @@ public class ProfileUserFragment extends Fragment {
         btnLogout = view.findViewById(R.id.btnLogout);
         tvDisplayName = view.findViewById(R.id.tvDisplayName);
         tvRecipeCount = view.findViewById(R.id.tvRecipeCount);
+        ivProfilePic = view.findViewById(R.id.ivProfilePic);
+        llFollowers = view.findViewById(R.id.llFollowers);
+        llFollowing = view.findViewById(R.id.llFollowing);
 
         if (AuthManager.getInstance().getCurrentUser() != null) {
             userName.setText(AuthManager.getInstance().getCurrentUser().getUsername());
@@ -73,6 +82,26 @@ public class ProfileUserFragment extends Fragment {
             startActivity(intent);
         });
 
+        llFollowers.setOnClickListener(v -> {
+            String userId = AuthManager.getInstance().getCurrentUser().getId();
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragmentContainer,
+                            FollowListFragment.newInstance(userId, FollowListFragment.MODE_FOLLOWERS))
+                    .addToBackStack(null)
+                    .commit();
+        });
+
+        llFollowing.setOnClickListener(v -> {
+            String userId = AuthManager.getInstance().getCurrentUser().getId();
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragmentContainer,
+                            FollowListFragment.newInstance(userId, FollowListFragment.MODE_FOLLOWING))
+                    .addToBackStack(null)
+                    .commit();
+        });
+
         //GridLayoutManager
         rvProfileRecipes.setLayoutManager(new GridLayoutManager(getContext(), 3));
         adapter = new ProfileRecipeAdapter(myRecipes);
@@ -81,11 +110,17 @@ public class ProfileUserFragment extends Fragment {
         adapter.setOnRecipeClickListener(position -> {
             String userId = AuthManager.getInstance().getCurrentUser() != null
                     ? AuthManager.getInstance().getCurrentUser().getId() : "";
-            String feedType = isMyRecipesTab ? "my_recipes" : "saved";
-            ProfileFeedFragment feedFragment = ProfileFeedFragment.newInstance(position, feedType, userId);
+
+            Fragment nextFragment;
+            if (isMyRecipesTab) {
+                nextFragment = ProfileSavedFeedFragment.newInstance(position, ProfileSavedFeedFragment.MODE_MY_RECIPES, userId);
+            } else {
+                nextFragment = ProfileSavedFeedFragment.newInstance(position, ProfileSavedFeedFragment.MODE_SAVED, userId);
+            }
+
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
-                    .replace(R.id.fragmentContainer, feedFragment)
+                    .replace(R.id.fragmentContainer, nextFragment)
                     .addToBackStack(null)
                     .commit();
         });
@@ -97,6 +132,12 @@ public class ProfileUserFragment extends Fragment {
         tabSaved.setOnClickListener(v -> {
             switchTab(false);
         });
+
+        fetchProfileStats();
+        fetchMyRecipes();
+        fetchSavedRecipes();
+        fetchAvatar();
+        switchTab(isMyRecipesTab);
 
         return view;
 
@@ -120,6 +161,127 @@ public class ProfileUserFragment extends Fragment {
         adapter.updateData(showMyRecipes ? myRecipes : savedRecipes);
     }
 
+    private void fetchSavedRecipes() {
+        String userId = AuthManager.getInstance().getCurrentUser().getId();
+        SupabaseApi api = ApiClient.getSupabaseApi();
+
+        api.getSavedRecipes(
+                "eq." + userId,
+                "user_id,recipe_id,created_at",
+                "created_at.desc"
+        ).enqueue(new Callback<List<SavedRecipeDto>>() {
+            @Override
+            public void onResponse(Call<List<SavedRecipeDto>> call, Response<List<SavedRecipeDto>> response) {
+                if (!response.isSuccessful() || response.body() == null) return;
+
+                List<SavedRecipeDto> savedRows = response.body();
+                if (savedRows.isEmpty()) {
+                    savedRecipes.clear();
+                    if (!isMyRecipesTab) {
+                        adapter.updateData(savedRecipes);
+                    }
+                    return;
+                }
+
+                StringBuilder idsBuilder = new StringBuilder("in.(");
+                for (int i = 0; i < savedRows.size(); i++) {
+                    idsBuilder.append(savedRows.get(i).recipeId);
+                    if (i < savedRows.size() - 1) {
+                        idsBuilder.append(",");
+                    }
+                }
+                idsBuilder.append(")");
+
+                api.getRecipesByIds(
+                        idsBuilder.toString(),
+                        "id,author_id,title,description,video_url,thumbnail_url,tags,prep_time_minutes,cook_time_minutes,estimated_calories,created_at"
+                ).enqueue(new Callback<List<RecipeDto>>() {
+                    @Override
+                    public void onResponse(Call<List<RecipeDto>> call, Response<List<RecipeDto>> response) {
+                        if (!response.isSuccessful() || response.body() == null) return;
+
+                        List<RecipeDto> fetchedRecipes = response.body();
+
+                        Map<String, RecipeDto> recipeMap = new HashMap<>();
+                        for (RecipeDto recipe : fetchedRecipes) {
+                            recipeMap.put(recipe.id, recipe);
+                        }
+
+                        List<RecipeDto> orderedRecipes = new ArrayList<>();
+                        for (SavedRecipeDto saved : savedRows) {
+                            RecipeDto recipe = recipeMap.get(saved.recipeId);
+                            if (recipe != null) {
+                                orderedRecipes.add(recipe);
+                            }
+                        }
+
+                        savedRecipes.clear();
+                        savedRecipes.addAll(orderedRecipes);
+
+                        if (!isMyRecipesTab) {
+                            adapter.updateData(savedRecipes);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<RecipeDto>> call, Throwable t) {
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(Call<List<SavedRecipeDto>> call, Throwable t) {
+            }
+        });
+    }
+
+
+
+
+    private void fetchMyRecipes() {
+        String userId = AuthManager.getInstance().getCurrentUser().getId();
+        SupabaseApi api = ApiClient.getSupabaseApi();
+
+        api.getRecipesByAuthor(
+                "eq." + userId,
+                "id,author_id,title,description,video_url,thumbnail_url,tags,prep_time_minutes,cook_time_minutes,estimated_calories,created_at"
+        ).enqueue(new Callback<List<RecipeDto>>() {
+            @Override
+            public void onResponse(Call<List<RecipeDto>> call, Response<List<RecipeDto>> response) {
+                if (!response.isSuccessful() || response.body() == null) return;
+                myRecipes.clear();
+                myRecipes.addAll(response.body());
+                if (isMyRecipesTab) {
+                    adapter.updateData(myRecipes);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<RecipeDto>> call, Throwable t) {}
+        });
+    }
+
+    private void fetchAvatar() {
+        String userId = AuthManager.getInstance().getCurrentUser().getId();
+        ApiClient.getSupabaseApi().getProfiles("eq." + userId, "id,avatar_url")
+                .enqueue(new Callback<List<UserDto>>() {
+                    @Override
+                    public void onResponse(Call<List<UserDto>> call, Response<List<UserDto>> response) {
+                        if (response.isSuccessful() && response.body() != null && !response.body().isEmpty()) {
+                            String avatarUrl = response.body().get(0).avatarUrl;
+                            if (!TextUtils.isEmpty(avatarUrl)) {
+                                Glide.with(ProfileUserFragment.this)
+                                        .load(avatarUrl)
+                                        .circleCrop()
+                                        .into(ivProfilePic);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<List<UserDto>> call, Throwable t) {}
+                });
+    }
 
     private void fetchProfileStats() {
         String userId = AuthManager.getInstance().getCurrentUser().getId();
@@ -162,6 +324,8 @@ public class ProfileUserFragment extends Fragment {
             public void onFailure(Call<List<RecipeDto>> call, Throwable t) {}
         });
     }
+
+
 
 
 
