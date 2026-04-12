@@ -505,27 +505,33 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
   /**
    * Loads the recipe author's avatar into the bubble at the top of the
-   * action column. Falls back to the placeholder drawable when the
-   * author has no avatar set.
+   * action column. When the author has no avatar set (e.g. they kept the
+   * signup template), we still load the placeholder drawable through
+   * Glide so the bubble looks identical to the loaded state — same
+   * circle crop, same sizing — instead of leaving the ImageView empty.
    */
   private void bindAuthorAvatar(VideoViewHolder holder) {
-    // Always keep the placeholder drawable as the background so the
-    // bubble is never blank — Glide will draw the loaded bitmap on top
-    // and the background only shows through during the in-flight load.
-    holder.profileImage.setBackgroundResource(R.drawable.ic_profile_placeholder);
-
+    Context ctx = holder.profileImage.getContext().getApplicationContext();
     String url = recipe.getAuthorAvatarUrl();
-    if (url != null && !url.isEmpty()) {
-      Glide.with(holder.profileImage.getContext().getApplicationContext())
-          .load(url)
+    boolean hasUrl = url != null && !url.trim().isEmpty();
+
+    if (hasUrl) {
+      Glide.with(ctx)
+          .load(url.trim())
           .placeholder(R.drawable.ic_profile_placeholder)
           .error(R.drawable.ic_profile_placeholder)
           .circleCrop()
+          .dontAnimate()
           .into(holder.profileImage);
     } else {
-      Glide.with(holder.profileImage.getContext().getApplicationContext())
-          .clear(holder.profileImage);
-      holder.profileImage.setImageDrawable(null);
+      // No avatar on file — render the placeholder through Glide so the
+      // same circleCrop transformation applies and the bubble never
+      // appears blank for template-avatar users.
+      Glide.with(ctx)
+          .load(R.drawable.ic_profile_placeholder)
+          .circleCrop()
+          .dontAnimate()
+          .into(holder.profileImage);
     }
   }
 
