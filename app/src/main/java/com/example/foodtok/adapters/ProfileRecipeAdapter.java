@@ -40,7 +40,7 @@ public class ProfileRecipeAdapter extends RecyclerView.Adapter<ProfileRecipeAdap
         this.clickListener = listener;
     }
 
-    // [NEW] Setter for long-click listener
+    // Setter for long-click listener
     public void setOnRecipeLongClickListener(OnRecipeLongClickListener listener) {
         this.longClickListener = listener;
     }
