@@ -1,5 +1,6 @@
 package com.example.foodtok.ui;
 
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -7,6 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -14,8 +16,12 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 
 import com.example.foodtok.R;
 import com.example.foodtok.adapters.CommentAdapter;
@@ -162,11 +168,35 @@ public class CommentsFragment extends BottomSheetDialogFragment {
   @Override
   public void onStart() {
     super.onStart();
-    // Expand the bottom sheet fully so keyboard doesn't hide the input
-    if (getDialog() != null && getDialog().getWindow() != null) {
-      getDialog().getWindow().setSoftInputMode(
-          WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+    if (getDialog() == null || getDialog().getWindow() == null) {
+      return;
     }
+    getDialog().getWindow().setSoftInputMode(
+        WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+
+    FrameLayout sheet = getDialog().findViewById(
+        com.google.android.material.R.id.design_bottom_sheet);
+    if (sheet == null) {
+      return;
+    }
+
+    int halfScreen =
+        Resources.getSystem().getDisplayMetrics().heightPixels / 2;
+
+    BottomSheetBehavior<FrameLayout> behavior = BottomSheetBehavior.from(sheet);
+    behavior.setPeekHeight(halfScreen);
+    behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+    behavior.setSkipCollapsed(false);
+
+    // When the keyboard opens, expand to full screen so the input row
+    // floats above the IME; on dismiss, drop back to the 50% peek.
+    ViewCompat.setOnApplyWindowInsetsListener(sheet, (v, insets) -> {
+      boolean imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
+      behavior.setState(imeVisible
+          ? BottomSheetBehavior.STATE_EXPANDED
+          : BottomSheetBehavior.STATE_COLLAPSED);
+      return insets;
+    });
   }
 
   // --- Private helpers ---
