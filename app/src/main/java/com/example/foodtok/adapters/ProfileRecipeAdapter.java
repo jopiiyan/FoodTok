@@ -1,11 +1,13 @@
 package com.example.foodtok.adapters;
 
 import android.text.TextUtils;
+import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -22,14 +24,29 @@ public class ProfileRecipeAdapter extends RecyclerView.Adapter<ProfileRecipeAdap
         void onRecipeClick(int position);
     }
 
-    // [NEW] Long-click callback — used for delete in My Recipes tab
+    /** Long-click callback — used for My Recipes tab (delete/download bottom sheet). */
     public interface OnRecipeLongClickListener {
         void onRecipeLongClick(int position);
     }
 
+    /** Overlay interaction callbacks — used for Saved tab. */
+    public interface OnRecipeInteractionListener {
+        void onLike(RecipeDto recipe);
+        void onSave(RecipeDto recipe);
+        void onNotInterested(RecipeDto recipe);
+    }
+
     private List<RecipeDto> recipes;
     private OnRecipeClickListener clickListener;
-    private OnRecipeLongClickListener longClickListener; // [NEW]
+    private OnRecipeLongClickListener longClickListener;
+    private OnRecipeInteractionListener interactionListener;
+
+    /** Whether overlay interactions are enabled (Saved tab) vs. long-press bottom sheet (My Recipes). */
+    private boolean overlayEnabled = false;
+
+    /** Position of the currently expanded overlay item, or NO_POSITION if none. */
+    private int activePosition = RecyclerView.NO_POSITION;
+
     private int lastAnimatedPosition = -1;
 
     public ProfileRecipeAdapter(List<RecipeDto> recipes) {
@@ -41,13 +58,39 @@ public class ProfileRecipeAdapter extends RecyclerView.Adapter<ProfileRecipeAdap
     }
 
     // Setter for long-click listener
+    /** Long-click listener — only used when overlay is disabled (My Recipes tab). */
     public void setOnRecipeLongClickListener(OnRecipeLongClickListener listener) {
         this.longClickListener = listener;
+    }
+
+    /** Interaction listener for overlay buttons (Saved tab). */
+    public void setOnRecipeInteractionListener(OnRecipeInteractionListener listener) {
+        this.interactionListener = listener;
+    }
+
+    /**
+     * Enable or disable the zoom-overlay mode.
+     * When true (Saved tab): long-press shows interaction overlay.
+     * When false (My Recipes tab): long-press delegates to longClickListener (bottom sheet).
+     */
+    public void setOverlayEnabled(boolean enabled) {
+        this.overlayEnabled = enabled;
+        clearActive();
+    }
+
+    /** Collapse any active overlay. Call on scroll or tab switch. */
+    public void clearActive() {
+        if (activePosition != RecyclerView.NO_POSITION) {
+            int old = activePosition;
+            activePosition = RecyclerView.NO_POSITION;
+            notifyItemChanged(old);
+        }
     }
 
     public void updateData(List<RecipeDto> newRecipes) {
         this.recipes = newRecipes;
         lastAnimatedPosition = -1;
+        clearActive();
         notifyDataSetChanged();
     }
 
@@ -61,7 +104,9 @@ public class ProfileRecipeAdapter extends RecyclerView.Adapter<ProfileRecipeAdap
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         RecipeDto recipe = recipes.get(position);
+        boolean isActive = overlayEnabled && (position == activePosition);
 
+        // Thumbnail
         if (!TextUtils.isEmpty(recipe.thumbnailUrl)) {
             Glide.with(holder.itemView.getContext())
                     .load(recipe.thumbnailUrl)
@@ -71,27 +116,71 @@ public class ProfileRecipeAdapter extends RecyclerView.Adapter<ProfileRecipeAdap
             VideoThumbnailLoader.load(recipe.videoUrl, holder.ivRecipeThumb);
         }
 
+        // Overlay visibility + scale animation
+        if (holder.overlayInteractions != null) {
+            holder.overlayInteractions.setVisibility(isActive ? View.VISIBLE : View.GONE);
+        }
+        holder.itemView.animate()
+                .scaleX(isActive ? 1.08f : 1.0f)
+                .scaleY(isActive ? 1.08f : 1.0f)
+                .setDuration(150)
+                .start();
+
+        // Normal tap: open recipe feed (or dismiss overlay if active)
         holder.itemView.setOnClickListener(v -> {
-            if (clickListener != null) {
-                int adapterPosition = holder.getAdapterPosition();
-                if (adapterPosition != RecyclerView.NO_POSITION) {
-                    clickListener.onRecipeClick(adapterPosition);
-                }
+            int pos = holder.getAdapterPosition();
+            if (pos == RecyclerView.NO_POSITION) return;
+            if (overlayEnabled && pos == activePosition) {
+                clearActive();
+            } else if (clickListener != null) {
+                clickListener.onRecipeClick(pos);
             }
         });
 
-        // [NEW] Wire long-click; return true to consume so regular click doesn't also fire
+        // Long-press
         holder.itemView.setOnLongClickListener(v -> {
-            if (longClickListener != null) {
-                int pos = holder.getAdapterPosition();
-                if (pos != RecyclerView.NO_POSITION) {
+            int pos = holder.getAdapterPosition();
+            if (pos == RecyclerView.NO_POSITION) return true;
+
+            if (overlayEnabled) {
+                // Saved tab: show zoom + overlay
+                v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                int old = activePosition;
+                activePosition = pos;
+                if (old != RecyclerView.NO_POSITION && old != pos) {
+                    notifyItemChanged(old);
+                }
+                notifyItemChanged(pos);
+            } else {
+                // My Recipes tab: delegate to fragment (bottom sheet)
+                if (longClickListener != null) {
                     longClickListener.onRecipeLongClick(pos);
                 }
             }
             return true;
         });
 
-        // Staggered entrance: only animate items appearing for the first time
+        // Wire overlay buttons (only meaningful when overlay is enabled)
+        if (holder.btnOverlayLike != null) {
+            holder.btnOverlayLike.setOnClickListener(v -> {
+                if (interactionListener != null) interactionListener.onLike(recipe);
+                clearActive();
+            });
+        }
+        if (holder.btnOverlaySave != null) {
+            holder.btnOverlaySave.setOnClickListener(v -> {
+                if (interactionListener != null) interactionListener.onSave(recipe);
+                clearActive();
+            });
+        }
+        if (holder.btnOverlayDislike != null) {
+            holder.btnOverlayDislike.setOnClickListener(v -> {
+                if (interactionListener != null) interactionListener.onNotInterested(recipe);
+                clearActive();
+            });
+        }
+
+        // Staggered entrance animation (only for items appearing for the first time)
         if (position > lastAnimatedPosition) {
             lastAnimatedPosition = position;
             holder.itemView.setAlpha(0f);
@@ -113,10 +202,18 @@ public class ProfileRecipeAdapter extends RecyclerView.Adapter<ProfileRecipeAdap
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView ivRecipeThumb;
+        LinearLayout overlayInteractions;
+        ImageView btnOverlayLike;
+        ImageView btnOverlaySave;
+        ImageView btnOverlayDislike;
 
         ViewHolder(View view) {
             super(view);
             ivRecipeThumb = view.findViewById(R.id.ivRecipeThumb);
+            overlayInteractions = view.findViewById(R.id.overlayInteractions);
+            btnOverlayLike = view.findViewById(R.id.btnOverlayLike);
+            btnOverlaySave = view.findViewById(R.id.btnOverlaySave);
+            btnOverlayDislike = view.findViewById(R.id.btnOverlayDislike);
         }
     }
 }

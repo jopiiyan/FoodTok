@@ -13,6 +13,11 @@ import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.app.DownloadManager;
+import android.content.Context;
+import android.net.Uri;
+import android.os.Environment;
+import android.webkit.URLUtil;
 
 import androidx.appcompat.app.AlertDialog;
 
@@ -32,6 +37,8 @@ import com.example.foodtok.R;
 import com.example.foodtok.adapters.ProfileRecipeAdapter;
 import com.example.foodtok.auth.AuthManager;
 import com.example.foodtok.auth.AuthServiceProvider;
+import com.example.foodtok.services.InteractionCallback;
+import com.example.foodtok.services.InteractionServiceProvider;
 import com.example.foodtok.models.dto.FollowDto;
 import com.example.foodtok.models.dto.RecipeDto;
 import com.example.foodtok.models.dto.SavedRecipeDto;
@@ -209,11 +216,49 @@ public class ProfileUserFragment extends Fragment {
         adapter = new ProfileRecipeAdapter(myRecipes);
         rvProfileRecipes.setAdapter(adapter);
 
-        // [NEW] Long-press opens delete bottom sheet — only active for My Recipes tab
+        // Long-press: My Recipes → bottom sheet; Saved → overlay (handled by adapter)
         adapter.setOnRecipeLongClickListener(position -> {
-            if (!isMyRecipesTab) return;
+            // Only reached when overlayEnabled=false (My Recipes tab)
             rvProfileRecipes.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
             showRecipeActionsSheet(position);
+        });
+
+        // Interaction overlay callbacks for Saved tab
+        adapter.setOnRecipeInteractionListener(new ProfileRecipeAdapter.OnRecipeInteractionListener() {
+            @Override
+            public void onLike(com.example.foodtok.models.dto.RecipeDto recipe) {
+                InteractionServiceProvider.getInteractionService()
+                        .likeRecipe(recipe.id, new InteractionCallback() {
+                            @Override public void onSuccess() {}
+                            @Override public void onError(String message) {}
+                        });
+            }
+
+            @Override
+            public void onSave(com.example.foodtok.models.dto.RecipeDto recipe) {
+                InteractionServiceProvider.getInteractionService()
+                        .saveRecipe(recipe.id, new InteractionCallback() {
+                            @Override public void onSuccess() {}
+                            @Override public void onError(String message) {}
+                        });
+            }
+
+            @Override
+            public void onNotInterested(com.example.foodtok.models.dto.RecipeDto recipe) {
+                InteractionServiceProvider.getInteractionService()
+                        .markNotInterested(recipe.id, new InteractionCallback() {
+                            @Override public void onSuccess() {}
+                            @Override public void onError(String message) {}
+                        });
+            }
+        });
+
+        // Dismiss overlay when user scrolls the profile grid
+        rvProfileRecipes.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@androidx.annotation.NonNull RecyclerView recyclerView, int dx, int dy) {
+                if (dy != 0) adapter.clearActive();
+            }
         });
 
         adapter.setOnRecipeClickListener(position -> {
@@ -331,6 +376,8 @@ public class ProfileUserFragment extends Fragment {
                     .start();
         }
 
+        // Saved tab uses zoom+overlay; My Recipes tab uses bottom sheet
+        adapter.setOverlayEnabled(!showMyRecipes);
         adapter.updateData(showMyRecipes ? myRecipes : savedRecipes);
     }
 
@@ -343,6 +390,10 @@ public class ProfileUserFragment extends Fragment {
         View sheetView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.bottom_sheet_recipe_actions, null);
         sheet.setContentView(sheetView);
+        // Make the dialog container transparent so our dark rounded-corner background shows
+        if (sheet.getWindow() != null) {
+            sheet.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
 
         sheetView.findViewById(R.id.actionDelete).setOnClickListener(v -> {
             sheet.dismiss();
@@ -354,8 +405,18 @@ public class ProfileUserFragment extends Fragment {
                     .show();
         });
 
-        // Download placeholder — no action yet
-        sheetView.findViewById(R.id.actionDownload).setOnClickListener(v -> sheet.dismiss());
+        sheetView.findViewById(R.id.actionManageIngredients).setOnClickListener(v -> {
+            sheet.dismiss();
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .setCustomAnimations(
+                            R.anim.slide_in_right, R.anim.slide_out_left,
+                            R.anim.slide_in_left, R.anim.slide_out_right)
+                    .replace(R.id.fragmentContainer,
+                            ManageIngredientsFragment.newInstance(recipe.id))
+                    .addToBackStack(null)
+                    .commit();
+        });
 
         sheet.show();
     }
@@ -419,7 +480,7 @@ public class ProfileUserFragment extends Fragment {
 
                 api.getRecipesByIds(
                         idsBuilder.toString(),
-                        "id,author_id,title,description,video_url,thumbnail_url,tags,prep_time_minutes,cook_time_minutes,estimated_calories,created_at"
+                        "id,author_id,title,description,video_url,thumbnail_url,tags,prep_time_minutes,cook_time_minutes,estimated_calories,created_at,recipe_ingredients(quantity,is_optional,ingredients(id,name,calories_per_100g)),profiles!author_id(id,username,avatar_url)"
                 ).enqueue(new Callback<List<RecipeDto>>() {
                     @Override
                     public void onResponse(Call<List<RecipeDto>> call, Response<List<RecipeDto>> response) {
@@ -466,7 +527,7 @@ public class ProfileUserFragment extends Fragment {
 
         api.getRecipesByAuthor(
                 "eq." + userId,
-                "id,author_id,title,description,video_url,thumbnail_url,tags,prep_time_minutes,cook_time_minutes,estimated_calories,created_at"
+                "id,author_id,title,description,video_url,thumbnail_url,tags,prep_time_minutes,cook_time_minutes,estimated_calories,created_at,recipe_ingredients(quantity,is_optional,ingredients(id,name,calories_per_100g)),profiles!author_id(id,username,avatar_url)"
         ).enqueue(new Callback<List<RecipeDto>>() {
             @Override
             public void onResponse(Call<List<RecipeDto>> call, Response<List<RecipeDto>> response) {

@@ -216,7 +216,7 @@ public class ProfileSavedFeedFragment extends Fragment {
 
         api.getRecipesByAuthor(
                 "eq." + userId,
-                "id,author_id,title,description,video_url,thumbnail_url,tags,prep_time_minutes,cook_time_minutes,estimated_calories,created_at"
+                "id,author_id,title,description,video_url,thumbnail_url,tags,prep_time_minutes,cook_time_minutes,estimated_calories,created_at,recipe_ingredients(quantity,is_optional,ingredients(id,name,calories_per_100g)),profiles!author_id(id,username,avatar_url)"
         ).enqueue(new Callback<List<RecipeDto>>() {
             @Override
             public void onResponse(Call<List<RecipeDto>> call, Response<List<RecipeDto>> response) {
@@ -279,7 +279,7 @@ public class ProfileSavedFeedFragment extends Fragment {
 
                 api.getRecipesByIds(
                         ids.toString(),
-                        "id,author_id,title,description,video_url,thumbnail_url,tags,prep_time_minutes,cook_time_minutes,estimated_calories,created_at"
+                        "id,author_id,title,description,video_url,thumbnail_url,tags,prep_time_minutes,cook_time_minutes,estimated_calories,created_at,recipe_ingredients(quantity,is_optional,ingredients(id,name,calories_per_100g)),profiles!author_id(id,username,avatar_url)"
                 ).enqueue(new Callback<List<RecipeDto>>() {
                     @Override
                     public void onResponse(Call<List<RecipeDto>> call, Response<List<RecipeDto>> response) {
