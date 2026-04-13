@@ -19,6 +19,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.foodtok.R;
+import com.example.foodtok.auth.AuthManager;
 import com.example.foodtok.adapters.FeedAdapter;
 import com.example.foodtok.adapters.OnRecipeInteractionListener;
 import com.example.foodtok.models.Recipe;
@@ -26,6 +27,7 @@ import com.example.foodtok.services.InteractionCallback;
 import com.example.foodtok.services.InteractionServiceProvider;
 import com.example.foodtok.services.RecipeListCallback;
 import com.example.foodtok.services.RecipeServiceProvider;
+import com.example.foodtok.services.RecommendationService;
 import com.example.foodtok.util.FeedVideoPlayerPool;
 
 import java.util.ArrayList;
@@ -48,6 +50,8 @@ public class HomeFragment extends Fragment {
   private TextView navChat;
   private boolean isKeyboardVisible;
   private int currentHorizontalPage = 1;
+  private final RecommendationService recommendationService =
+      new RecommendationService();
 
   /** Cached recipes so the feed survives view destruction (e.g. back from overlay). */
   private List<Recipe> cachedRecipes;
@@ -173,8 +177,11 @@ public class HomeFragment extends Fragment {
             }
             getActivity().runOnUiThread(() -> {
               feedLoadingSpinner.setVisibility(View.GONE);
-              cachedRecipes = new ArrayList<>(recipes);
-              initFeedAdapter(recipes, 0);
+              List<Recipe> ranked =
+                  recommendationService.generateFeed(recipes,
+                      AuthManager.getInstance().getCurrentUser());
+              cachedRecipes = new ArrayList<>(ranked);
+              initFeedAdapter(ranked, 0);
             });
           }
 

@@ -1,13 +1,21 @@
 package com.example.foodtok.services;
 
+import android.util.Log;
+
+import com.example.foodtok.auth.AuthManager;
+import com.example.foodtok.models.User;
 import com.example.foodtok.models.dto.CreateInteractionRequest;
 import com.example.foodtok.models.dto.CreateSavedRecipeRequest;
 import com.example.foodtok.models.dto.InteractionDto;
+import com.example.foodtok.models.dto.RecipeDto;
 import com.example.foodtok.models.dto.SavedRecipeDto;
+import com.example.foodtok.models.dto.UpdateProfileRequest;
+import com.example.foodtok.models.dto.UserDto;
 import com.example.foodtok.util.ApiClient;
 import com.example.foodtok.util.SessionManager;
 
 import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -116,6 +124,14 @@ public class SupabaseInteractionService implements IInteractionService {
             if (response.isSuccessful()) {
               if ("save".equals(type)) {
                 syncSavedRecipeInsert(userId, recipeId);
+                updateInterestProfile(recipeId,
+                    RecommendationService.SAVE_POINTS);
+              } else if ("like".equals(type)) {
+                updateInterestProfile(recipeId,
+                    RecommendationService.LIKE_POINTS);
+              } else if ("not_interested".equals(type)) {
+                updateInterestProfile(recipeId,
+                    RecommendationService.NOT_INTERESTED_POINTS);
               }
               callback.onSuccess();
             } else {
@@ -142,6 +158,18 @@ public class SupabaseInteractionService implements IInteractionService {
             if (response.isSuccessful()) {
               if ("eq.save".equals(typeFilter)) {
                 syncSavedRecipeDelete(userFilter, recipeFilter);
+              }
+              // Reverse the score change on un-like / un-save / un-not-interested
+              String rawRecipeId = recipeFilter.replace("eq.", "");
+              if ("eq.like".equals(typeFilter)) {
+                updateInterestProfile(rawRecipeId,
+                    -RecommendationService.LIKE_POINTS);
+              } else if ("eq.save".equals(typeFilter)) {
+                updateInterestProfile(rawRecipeId,
+                    -RecommendationService.SAVE_POINTS);
+              } else if ("eq.not_interested".equals(typeFilter)) {
+                updateInterestProfile(rawRecipeId,
+                    -RecommendationService.NOT_INTERESTED_POINTS);
               }
               callback.onSuccess();
             } else {
@@ -224,6 +252,87 @@ public class SupabaseInteractionService implements IInteractionService {
           public void onFailure(Call<List<InteractionDto>> call,
               Throwable t) {
             callback.onResult(false);
+          }
+        });
+  }
+
+  /**
+   * Fetches the recipe's tags, updates the in-memory user interest
+   * profile, then PATCHes the profile to Supabase. Best-effort —
+   * failures are logged but do not interrupt the interaction flow.
+   */
+  private void updateInterestProfile(String recipeId, int points) {
+    User user = AuthManager.getInstance().getCurrentUser();
+    if (user == null) {
+      return;
+    }
+
+    api.getRecipeById("eq." + recipeId, "tags")
+        .enqueue(new Callback<List<RecipeDto>>() {
+          @Override
+          public void onResponse(Call<List<RecipeDto>> call,
+              Response<List<RecipeDto>> response) {
+            if (!response.isSuccessful()
+                || response.body() == null
+                || response.body().isEmpty()) {
+              return;
+            }
+            RecipeDto dto = response.body().get(0);
+            if (dto.tags == null || dto.tags.length == 0) {
+              return;
+            }
+
+            // Update local HashMap
+            for (String tag : dto.tags) {
+              if (tag != null) {
+                user.updateInterestScore(
+                    tag.toLowerCase(), points);
+              }
+            }
+
+            Log.d("RecommendationService",
+                "Interest updated (" + (points >= 0 ? "+" : "")
+                    + points + " to " + dto.tags.length + " tags) → "
+                    + user.getInterestProfile());
+
+            // Persist to Supabase
+            persistInterestProfile(user);
+          }
+
+          @Override
+          public void onFailure(Call<List<RecipeDto>> call,
+              Throwable t) {
+            Log.w("InteractionService",
+                "Failed to fetch recipe tags for profile update",
+                t);
+          }
+        });
+  }
+
+  /**
+   * PATCHes the user's interest profile to the Supabase profiles
+   * table. Best-effort — failures are logged silently.
+   */
+  private void persistInterestProfile(User user) {
+    UpdateProfileRequest request = new UpdateProfileRequest();
+    request.interestProfile = user.getInterestProfile();
+
+    api.updateProfile("eq." + user.getId(), request)
+        .enqueue(new Callback<List<UserDto>>() {
+          @Override
+          public void onResponse(Call<List<UserDto>> call,
+              Response<List<UserDto>> response) {
+            if (!response.isSuccessful()) {
+              Log.w("InteractionService",
+                  "Profile update failed: " + response.code());
+            }
+          }
+
+          @Override
+          public void onFailure(Call<List<UserDto>> call,
+              Throwable t) {
+            Log.w("InteractionService",
+                "Profile update network error", t);
           }
         });
   }
