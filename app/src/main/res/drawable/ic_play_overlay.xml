@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="88dp"
+    android:height="88dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Soft translucent circle backdrop for contrast on any frame -->
+    <path
+        android:fillColor="#66000000"
+        android:pathData="M12,12m-11,0a11,11 0,1 1,22 0a11,11 0,1 1,-22 0" />
+    <!-- White play triangle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M9.5,7.5L17,12L9.5,16.5z" />
+</vector>

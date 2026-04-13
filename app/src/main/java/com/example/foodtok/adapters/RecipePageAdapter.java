@@ -309,6 +309,19 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     if (playerPool != null) {
       playerPool.attach(feedPosition, holder.videoView);
     }
+
+    // Tap the video surface to toggle play/pause. Center overlay reflects state.
+    holder.playPauseOverlay.setVisibility(View.GONE);
+    holder.videoView.setOnClickListener(v -> {
+      androidx.media3.common.Player player = holder.videoView.getPlayer();
+      if (player == null) {
+        return;
+      }
+      boolean willPlay = !player.getPlayWhenReady();
+      player.setPlayWhenReady(willPlay);
+      holder.playPauseOverlay.setVisibility(willPlay ? View.GONE : View.VISIBLE);
+    });
+
     holder.recipeTitleText.setText(recipe.getTitle());
 
     // Display User.name as the username handle
@@ -886,6 +899,7 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     final ImageView saveButton;
     final TextView saveCountText;
     final ImageView notInterestedButton;
+    final ImageView playPauseOverlay;
 
     // Local toggle/count state used for optimistic UI updates so a
     // like/save/not-interested tap never needs to notifyDataSetChanged
@@ -913,6 +927,7 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
       saveButton = itemView.findViewById(R.id.saveButton);
       saveCountText = itemView.findViewById(R.id.saveCountText);
       notInterestedButton = itemView.findViewById(R.id.notInterestedButton);
+      playPauseOverlay = itemView.findViewById(R.id.playPauseOverlay);
     }
   }
 

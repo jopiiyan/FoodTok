@@ -19,6 +19,21 @@
         app:resize_mode="zoom"
         app:use_controller="false" />
 
+    <!-- Center play indicator: visible only while paused. Tap on video toggles. -->
+    <ImageView
+        android:id="@+id/playPauseOverlay"
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        android:contentDescription="Paused"
+        android:src="@drawable/ic_play_overlay"
+        android:clickable="false"
+        android:focusable="false"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <!-- Bottom-left: username, author, allergen warning, title, tags -->
     <LinearLayout
         android:id="@+id/bottomLeftInfo"
@@ -76,17 +91,19 @@
 
     </LinearLayout>
 
-    <!-- Right side: profile pic + action buttons — vertically centered -->
+    <!-- Right side: profile pic + action buttons — anchored to the bottom
+         so they sit in the comfortable thumb-reach zone and align with the
+         caption row on the left. -->
     <LinearLayout
         android:id="@+id/bottomRightActions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="12dp"
+        android:layout_marginBottom="32dp"
         android:gravity="center_horizontal"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <FrameLayout
             android:layout_width="48dp"
