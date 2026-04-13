@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.foodtok.R;
@@ -198,12 +199,14 @@ public class ManageIngredientsFragment extends Fragment {
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
         nameView.setLayoutParams(nameParams);
         nameView.setText(displayText);
-        nameView.setTextColor(0xFFFFFFFF);
+        nameView.setTextColor(0xFF000000);
         nameView.setTextSize(15);
+        nameView.setTypeface(ResourcesCompat.getFont(requireContext(), R.font.poppins));
 
         Button removeButton = new Button(requireContext());
         removeButton.setText("✕");
         removeButton.setTextColor(0xFFFFFFFF);
+        removeButton.setTypeface(ResourcesCompat.getFont(requireContext(), R.font.poppins));
         final LinearLayout rowRef = row;
         removeButton.setOnClickListener(v -> {
             ViewGroup parent = (ViewGroup) rowRef.getParent();
