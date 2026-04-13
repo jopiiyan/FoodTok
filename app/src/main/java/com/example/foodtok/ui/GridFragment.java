@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.foodtok.R;
 import com.example.foodtok.adapters.GridAdapter;
 import com.example.foodtok.models.Recipe;
+import com.example.foodtok.services.InteractionCallback;
+import com.example.foodtok.services.InteractionServiceProvider;
 import com.example.foodtok.services.RecipeListCallback;
 import com.example.foodtok.services.RecipeServiceProvider;
 
@@ -45,8 +47,69 @@ public class GridFragment extends Fragment {
             if (getActivity() == null) return;
             getActivity().runOnUiThread(() -> {
               spinner.setVisibility(View.GONE);
+
               GridAdapter adapter = new GridAdapter(recipes, position -> openFeedAt(position));
+
+              adapter.setOnGridInteractionListener(new GridAdapter.OnGridInteractionListener() {
+                @Override
+                public void onLike(Recipe recipe) {
+                  InteractionServiceProvider.getInteractionService()
+                      .likeRecipe(recipe.getId(), new InteractionCallback() {
+                        @Override
+                        public void onSuccess() {
+                          if (getActivity() != null) {
+                            getActivity().runOnUiThread(() ->
+                                Toast.makeText(getContext(), "Liked!", Toast.LENGTH_SHORT).show());
+                          }
+                        }
+                        @Override
+                        public void onError(String message) {}
+                      });
+                }
+
+                @Override
+                public void onSave(Recipe recipe) {
+                  InteractionServiceProvider.getInteractionService()
+                      .saveRecipe(recipe.getId(), new InteractionCallback() {
+                        @Override
+                        public void onSuccess() {
+                          if (getActivity() != null) {
+                            getActivity().runOnUiThread(() ->
+                                Toast.makeText(getContext(), "Saved!", Toast.LENGTH_SHORT).show());
+                          }
+                        }
+                        @Override
+                        public void onError(String message) {}
+                      });
+                }
+
+                @Override
+                public void onNotInterested(Recipe recipe) {
+                  InteractionServiceProvider.getInteractionService()
+                      .markNotInterested(recipe.getId(), new InteractionCallback() {
+                        @Override
+                        public void onSuccess() {
+                          if (getActivity() != null) {
+                            getActivity().runOnUiThread(() ->
+                                Toast.makeText(getContext(), "Got it, won't show again",
+                                    Toast.LENGTH_SHORT).show());
+                          }
+                        }
+                        @Override
+                        public void onError(String message) {}
+                      });
+                }
+              });
+
               rvGrid.setAdapter(adapter);
+
+              // Dismiss overlay when the user scrolls
+              rvGrid.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                  if (dy != 0) adapter.clearActive();
+                }
+              });
             });
           }
 
@@ -73,10 +136,10 @@ public class GridFragment extends Fragment {
     requireActivity().getSupportFragmentManager()
         .beginTransaction()
         .setCustomAnimations(
-            R.anim.feed_enter,   // new fragment enters
-            R.anim.feed_exit,    // current fragment exits
-            R.anim.feed_enter,   // current fragment re-enters on back
-            R.anim.feed_exit     // new fragment exits on back
+            R.anim.feed_enter,
+            R.anim.feed_exit,
+            R.anim.feed_enter,
+            R.anim.feed_exit
         )
         .replace(R.id.fragmentContainer, feedFragment)
         .addToBackStack(null)

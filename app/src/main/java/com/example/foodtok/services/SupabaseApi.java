@@ -129,6 +129,10 @@ public interface SupabaseApi {
       @Body List<CreateRecipeIngredientRequest> rows
   );
 
+  /** Deletes all ingredient rows for a recipe (e.g. {@code eq.<uuid>}). */
+  @DELETE("recipe_ingredients")
+  Call<Void> deleteRecipeIngredients(@Query("recipe_id") String recipeIdFilter);
+
   // ── Tags ─────────────────────────────────────────────────────────────
 
   /**
