@@ -18,8 +18,12 @@ import android.widget.Toast;
 import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
+import android.content.Intent;
+
+import com.example.foodtok.models.dto.CreateFollowRequest;
 import com.example.foodtok.models.dto.FollowDto;
 import com.example.foodtok.services.SupabaseApi;
+import com.example.foodtok.ui.LoginActivity;
 import com.example.foodtok.ui.MainActivity;
 import com.example.foodtok.ui.OtherUserProfileFragment;
 
@@ -628,12 +632,14 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     // successful response that *confirms* the follow row exists will
     // hide it.
     holder.followPlusButton.setVisibility(View.VISIBLE);
+    holder.followPlusButton.setOnClickListener(
+        v -> handleFollowClick(holder, authorId));
 
     if (currentUserId == null) {
       return;
     }
 
-    SupabaseApi api = ApiClient.getRestClient().create(SupabaseApi.class);
+    SupabaseApi api = ApiClient.getSupabaseApi();
     api.checkFollow("eq." + currentUserId, "eq." + authorId)
         .enqueue(new Callback<List<FollowDto>>() {
           @Override
@@ -653,6 +659,50 @@ public class RecipePageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
           public void onFailure(@NonNull Call<List<FollowDto>> call,
               @NonNull Throwable t) {
             // Leave the optimistic "+" in place on transient failures.
+          }
+        });
+  }
+
+  /**
+   * Fires a follow on the {@code follows} table for the current user →
+   * recipe author. If the user isn't signed in, routes them to login
+   * instead. On success, hides the plus badge so it mirrors the state
+   * reflected by {@link #bindFollowState}.
+   */
+  private void handleFollowClick(VideoViewHolder holder, String authorId) {
+    Context ctx = holder.followPlusButton.getContext();
+    String currentUserId = SessionManager.getInstance().getUserId();
+    if (currentUserId == null || currentUserId.isEmpty()) {
+      ctx.startActivity(new Intent(ctx, LoginActivity.class));
+      return;
+    }
+
+    holder.followPlusButton.setEnabled(false);
+    SupabaseApi api = ApiClient.getSupabaseApi();
+    api.followUser(new CreateFollowRequest(currentUserId, authorId))
+        .enqueue(new Callback<List<FollowDto>>() {
+          @Override
+          public void onResponse(@NonNull Call<List<FollowDto>> call,
+              @NonNull Response<List<FollowDto>> response) {
+            holder.followPlusButton.post(() -> {
+              if (response.isSuccessful()) {
+                holder.followPlusButton.setVisibility(View.GONE);
+              } else {
+                holder.followPlusButton.setEnabled(true);
+                Toast.makeText(ctx, "Could not follow user",
+                    Toast.LENGTH_SHORT).show();
+              }
+            });
+          }
+
+          @Override
+          public void onFailure(@NonNull Call<List<FollowDto>> call,
+              @NonNull Throwable t) {
+            holder.followPlusButton.post(() -> {
+              holder.followPlusButton.setEnabled(true);
+              Toast.makeText(ctx, "Network error — try again",
+                  Toast.LENGTH_SHORT).show();
+            });
           }
         });
   }
