@@ -70,8 +70,19 @@ public class HomeFragment extends Fragment {
       isKeyboardVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
 
       if (feedViewPager != null) {
-        // Lock the vertical pager
-        feedViewPager.setUserInputEnabled(!isKeyboardVisible);
+        // Lock the vertical pager while the keyboard is up, and keep it
+        // locked whenever the user is on a non-feed horizontal page
+        // (ingredients / chat) — otherwise dismissing the chat keyboard
+        // would silently re-enable vertical swiping even though the user
+        // is still reading the chat response. Read the page authoritatively
+        // from the visible horizontal pager so we don't rely on a cached
+        // field that can be stale across keyboard transitions.
+        int liveHorizontalPage = (feedAdapter != null)
+            ? feedAdapter.getCurrentHorizontalPage()
+            : currentHorizontalPage;
+        if (liveHorizontalPage < 0) liveHorizontalPage = currentHorizontalPage;
+        feedViewPager.setUserInputEnabled(
+            !isKeyboardVisible && liveHorizontalPage == 1);
       }
 
       // Force the Top Nav to highlight "Chat" (index 2) when typing

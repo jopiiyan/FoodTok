@@ -1,6 +1,5 @@
 package com.example.foodtok.ui;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -115,10 +114,9 @@ public class GridFeedFragment extends Fragment {
       public void onLikeClicked(Recipe recipe) {
         InteractionServiceProvider.getInteractionService()
             .likeRecipe(recipe.getId(), new InteractionCallback() {
-              @SuppressLint("NotifyDataSetChanged")
               @Override
               public void onSuccess() {
-                feedAdapter.notifyDataSetChanged();
+                // Interaction buttons update their own UI — no rebind needed.
               }
 
               @Override
@@ -142,10 +140,9 @@ public class GridFeedFragment extends Fragment {
       public void onSaveClicked(Recipe recipe) {
         InteractionServiceProvider.getInteractionService()
             .saveRecipe(recipe.getId(), new InteractionCallback() {
-              @SuppressLint("NotifyDataSetChanged")
               @Override
               public void onSuccess() {
-                feedAdapter.notifyDataSetChanged();
+                // Interaction buttons update their own UI — no rebind needed.
               }
 
               @Override
@@ -163,10 +160,9 @@ public class GridFeedFragment extends Fragment {
       public void onNotInterestedClicked(Recipe recipe) {
         InteractionServiceProvider.getInteractionService()
             .markNotInterested(recipe.getId(), new InteractionCallback() {
-              @SuppressLint("NotifyDataSetChanged")
               @Override
               public void onSuccess() {
-                feedAdapter.notifyDataSetChanged();
+                // Interaction buttons update their own UI — no rebind needed.
               }
 
               @Override

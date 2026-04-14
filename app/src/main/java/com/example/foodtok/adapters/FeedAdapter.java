@@ -56,6 +56,23 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedPageViewHo
     }
   }
 
+  /**
+   * Returns the currently displayed horizontal page of the visible recipe
+   * card, or {@code -1} if it can't be resolved. Used as an authoritative
+   * source of truth when cached state may be stale (e.g. keyboard insets).
+   */
+  public int getCurrentHorizontalPage() {
+    if (parentVerticalPager == null) return -1;
+    View firstChild = parentVerticalPager.getChildAt(0);
+    if (!(firstChild instanceof RecyclerView)) return -1;
+
+    RecyclerView rv = (RecyclerView) firstChild;
+    int currentPos = parentVerticalPager.getCurrentItem();
+    FeedPageViewHolder vh = (FeedPageViewHolder) rv.findViewHolderForAdapterPosition(currentPos);
+    if (vh == null) return -1;
+    return vh.horizontalPager.getCurrentItem();
+  }
+
   @NonNull
   @Override
   public FeedPageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
