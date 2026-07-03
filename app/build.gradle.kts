@@ -4,6 +4,7 @@ import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android.application)
+    jacoco
 }
 
 val localProps = Properties()
@@ -41,6 +42,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Emit JaCoCo execution data from JVM unit tests
+            // (build/outputs/unit_test_code_coverage/debugUnitTest/*.exec).
+            enableUnitTestCoverage = true
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -53,6 +59,49 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    testOptions {
+        unitTests {
+            // Return default values (0/false/null) for un-mocked android.* stubs
+            // (e.g. android.util.Log) so JVM unit tests can exercise production
+            // classes that log without pulling in Robolectric.
+            isReturnDefaultValues = true
+        }
+    }
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+    group = "verification"
+    description = "Generates JaCoCo coverage (HTML + XML) for the debug unit tests."
+
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
+    }
+
+    // Exclude generated / framework classes that carry no meaningful logic.
+    val excludes = listOf(
+        "**/R.class", "**/R$*.class", "**/BuildConfig.*",
+        "**/Manifest*.*", "**/*Test*.*",
+        "android/**/*.*", "**/databinding/**", "**/*_*.class"
+    )
+
+    classDirectories.setFrom(
+        fileTree(layout.buildDirectory.dir("intermediates/javac/debug/compileDebugJavaWithJavac/classes")) {
+            exclude(excludes)
+        }
+    )
+    sourceDirectories.setFrom(files("src/main/java"))
+    executionData.setFrom(
+        fileTree(layout.buildDirectory) {
+            include("outputs/unit_test_code_coverage/debugUnitTest/*.exec")
+        }
+    )
 }
 
 dependencies {
